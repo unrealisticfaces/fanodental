@@ -1,25 +1,22 @@
-// Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
-import { getAuth } from "firebase/auth";
-import { getDatabase } from "firebase/database";
+import { initializeApp } from 'firebase/app';
+import { getDatabase } from 'firebase/database';
+import { getAuth } from 'firebase/auth';
 
-// Export the config so Settings.jsx can use it to create secondary accounts
 export const firebaseConfig = {
-  apiKey: "AIzaSyC_4IWNQ4c6-tw2Db_e4iSfALeQQJU97XY",
-  authDomain: "fanolab.firebaseapp.com",
-  databaseURL: "https://fanolab-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "fanolab",
-  storageBucket: "fanolab.firebasestorage.app",
-  messagingSenderId: "64382584911",
-  appId: "1:64382584911:web:5850ac73477e36ca3a823a",
-  measurementId: "G-PY9ZQGDNWC"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-export const analytics = getAnalytics(app);
 
-// Export Auth and Database so the rest of the application can use them
-export const auth = getAuth(app);
+// Initialize Realtime Database and get a reference to the service
 export const database = getDatabase(app);
+
+// Initialize Firebase Authentication and get a reference to the service
+export const auth = getAuth(app);
