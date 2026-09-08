@@ -44,7 +44,7 @@ const Sidebar = ({ onLogout, userProfile, onProfileClick, isOwner }) => {
     <aside className="w-64 bg-surfaceLight dark:bg-surfaceDark border-r border-borderLight dark:border-borderDark flex flex-col hidden md:flex transition-colors duration-200">
       <div className="h-16 flex items-center px-6 border-b border-borderLight dark:border-borderDark">
         <div className="flex items-center gap-3">
-          <div className="w-7 h-7 rounded bg-primary flex items-center justify-center text-white font-bold text-sm shadow-sm">D</div>
+          <div className="w-7 h-7 rounded bg-primary flex items-center justify-center text-white font-bold text-sm shadow-sm">F</div>
           <span className="text-base font-bold text-textLight dark:text-textDark tracking-tight">Fano Laboratory</span>
         </div>
       </div>
