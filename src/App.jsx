@@ -1,18 +1,28 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
 import { onAuthStateChanged, signOut, updateProfile, updatePassword } from 'firebase/auth';
 import { database, auth } from './firebase';
 import { ref, get, update } from 'firebase/database';
 import { ToastProvider } from './ToastContext';
-import OrderLayout from './pages/OrderLayout';
-import Records from './pages/Records';
-import Dashboard from './pages/Dashboard';
-import Billing from './pages/Billing';
-import Payroll from './pages/Payroll';
-import SystemLogs from './pages/SystemLogs';
-import Settings from './pages/Settings';
-import Login from './pages/Login';
 import { DataProvider } from './DataContext';
+import Login from './pages/Login'; // Kept static so the login screen loads instantly
+
+// 🚀 OPTIMIZATION: Lazy Load the Heavy Components
+const OrderLayout = lazy(() => import('./pages/OrderLayout'));
+const Records = lazy(() => import('./pages/Records'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Billing = lazy(() => import('./pages/Billing'));
+const Payroll = lazy(() => import('./pages/Payroll'));
+const Queue = lazy(() => import('./pages/Queue'));
+const SystemLogs = lazy(() => import('./pages/SystemLogs'));
+const Settings = lazy(() => import('./pages/Settings'));
+
+// Clean loading fallback while chunk downloads
+const PageLoader = () => (
+  <div className="flex h-full w-full items-center justify-center p-10">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+  </div>
+);
 
 const SunIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 3v1"></path><path d="M12 20v1"></path><path d="M3 12h1"></path><path d="M20 12h1"></path><path d="M18.364 5.636l-.707.707"></path><path d="M6.343 17.657l-.707.707"></path><path d="M5.636 5.636l.707.707"></path><path d="M17.657 17.657l.707.707"></path></svg>);
 const MoonIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z"></path></svg>);
@@ -21,6 +31,7 @@ const OrderIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="18" heig
 const RecordsIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path><line x1="9" y1="14" x2="15" y2="14"></line></svg>);
 const BillingIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 21v-16a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v16l-3 -2l-2 2l-2 -2l-2 2l-2 -2l-3 2m4 -14h6m-6 4h6m-2 4h2" /></svg>);
 const PayrollIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>);
+const QueueIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="15" rx="2" ry="2"></rect><polyline points="17 2 12 7 7 2"></polyline></svg>);
 const LogsIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>);
 const SettingsIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10.325 4.317c.426 -1.756 2.924 -1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543 -.94 3.31 .826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756 .426 1.756 2.924 0 3.35a1.724 1.724 0 0 0 -1.066 2.573c.94 1.543 -.826 3.31 -2.37 2.37a1.724 1.724 0 0 0 -2.572 1.065c-.426 1.756 -2.924 1.756 -3.35 0a1.724 1.724 0 0 0 -2.573 -1.066c-1.543 .94 -3.31 -.826 -2.37 -2.37a1.724 1.724 0 0 0 -1.065 -2.572c-1.756 -.426 -1.756 -2.924 0 -3.35a1.724 1.724 0 0 0 1.066 -2.573c-.94 -1.543 .826 -3.31 2.37 -2.37c1 .608 2.296 .07 2.572 -1.065z" /><path d="M9 12a3 3 0 1 0 6 0a3 3 0 0 0 -6 0" /></svg>);
 
@@ -33,6 +44,7 @@ const Sidebar = ({ onLogout, userProfile, onProfileClick, isOwner }) => {
     { path: '/records', label: 'Records', icon: <RecordsIcon /> },
     { path: '/billing', label: 'Billing', icon: <BillingIcon /> },
     { path: '/payroll', label: 'Payroll', icon: <PayrollIcon /> },
+    { path: '/queue', label: 'Live Queue', icon: <QueueIcon /> },
     { path: '/logs', label: 'System Logs', icon: <LogsIcon /> }
   ];
 
@@ -299,16 +311,19 @@ export default function App() {
                 </header>
                 <div className="flex-1 overflow-auto p-6 lg:p-8">
                   {workspaceUid && !mustChangePassword ? (
-                    <Routes>
-                      <Route path="/" element={<Dashboard workspaceUid={workspaceUid} />} />
-                      <Route path="/order" element={<OrderLayout workspaceUid={workspaceUid} userProfile={userProfile} />} />
-                      <Route path="/records" element={<Records workspaceUid={workspaceUid} userProfile={userProfile} />} />
-                      <Route path="/billing" element={<Billing workspaceUid={workspaceUid} />} />
-                      <Route path="/payroll" element={<Payroll workspaceUid={workspaceUid} />} />
-                      <Route path="/logs" element={<SystemLogs workspaceUid={workspaceUid} />} />
-                      {isOwner && <Route path="/settings" element={<Settings workspaceUid={workspaceUid} />} />}
-                      <Route path="*" element={<Navigate to="/" />} />
-                    </Routes>
+                    <Suspense fallback={<PageLoader />}>
+                      <Routes>
+                        <Route path="/" element={<Dashboard workspaceUid={workspaceUid} />} />
+                        <Route path="/order" element={<OrderLayout workspaceUid={workspaceUid} userProfile={userProfile} />} />
+                        <Route path="/records" element={<Records workspaceUid={workspaceUid} userProfile={userProfile} />} />
+                        <Route path="/billing" element={<Billing workspaceUid={workspaceUid} />} />
+                        <Route path="/payroll" element={<Payroll workspaceUid={workspaceUid} />} />
+                        <Route path="/queue" element={<Queue workspaceUid={workspaceUid} />} /> 
+                        <Route path="/logs" element={<SystemLogs workspaceUid={workspaceUid} />} />
+                        {isOwner && <Route path="/settings" element={<Settings workspaceUid={workspaceUid} />} />}
+                        <Route path="*" element={<Navigate to="/" />} />
+                      </Routes>
+                    </Suspense>
                   ) : (
                     <div className="flex items-center justify-center h-full text-sm text-mutedLight dark:text-mutedDark">
                       {mustChangePassword ? "Please update your password to continue." : "Connecting to workspace..."}
@@ -318,6 +333,7 @@ export default function App() {
               </main>
             </div>
 
+            {/* Password and Profile Modals Remain Here */}
             {mustChangePassword && (
               <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-md p-4">
                 <div className="bg-surfaceLight dark:bg-surfaceDark border border-borderLight dark:border-borderDark rounded-md shadow-2xl w-full max-w-md p-6 animate-in fade-in">

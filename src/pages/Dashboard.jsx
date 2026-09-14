@@ -3,18 +3,9 @@ import { useData } from '../DataContext';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell } from 'recharts';
 
 export default function Dashboard({ workspaceUid }) {
-  const { orders, isInitialLoading: isLoading } = useData();
+  // 🚀 Brought in stats from Context
+  const { orders, stats, isInitialLoading: isLoading } = useData();
 
-  const [stats, setStats] = useState({
-    gross: 0,
-    collected: 0,
-    outstanding: 0,
-    overdue: 0,
-    active: 0,
-    delivered: 0,
-    topProductName: 'N/A'
-  });
-  
   const [overdueOrders, setOverdueOrders] = useState([]);
   const [dueTodayOrders, setDueTodayOrders] = useState([]);
   const [dueTomorrowOrders, setDueTomorrowOrders] = useState([]);
@@ -23,147 +14,95 @@ export default function Dashboard({ workspaceUid }) {
   const [dueTodayPage, setDueTodayPage] = useState(1);
   const [dueTomorrowPage, setDueTomorrowPage] = useState(1);
 
-  const [chartData, setChartData] = useState([]);
-  const [pieData, setPieData] = useState([]);
-  const [productPieData, setProductPieData] = useState([]);
-
   useEffect(() => {
     if (isLoading || !orders) return;
-
-    let gross = 0;
-    let collected = 0;
-    let outstanding = 0;
-    let overdue = 0;
-    let active = 0;
-    let delivered = 0;
-
-    const dailyDataMap = {};
-    const productMap = {};
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    
-    for (let i = 13; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(today.getDate() - i);
-      const dayMonth = d.toLocaleString('en-GB', { day: 'numeric', month: 'short' }); 
-      const sortKey = d.getFullYear() * 10000 + d.getMonth() * 100 + d.getDate();
-      dailyDataMap[sortKey] = { name: dayMonth, sortKey, gross: 0, collected: 0 };
-    }
 
     const overdueJobs = [];
     const dueTodayJobs = [];
     const dueTomorrowJobs = [];
 
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
     orders.forEach(order => {
-      const total = parseFloat(order.totalPrice) || 0;
-      const pay = parseFloat(order.payment) || 0;
-      const bal = Math.max(0, total - pay);
+      if (order.initialStatus === 'In progress' && order.dueDate) {
+        const [y, m, d] = order.dueDate.split('-');
+        const due = new Date(y, m - 1, d);
+        due.setHours(0, 0, 0, 0);
 
-      gross += total;
-      collected += pay;
-
-      if (order.initialStatus === 'In progress') {
-         active++;
-         if (order.dueDate) {
-            const [y, m, d] = order.dueDate.split('-');
-            const due = new Date(y, m - 1, d);
-            due.setHours(0, 0, 0, 0);
-
-            if (due < today) {
-               overdueJobs.push(order);
-            } else if (due.getTime() === today.getTime()) {
-               dueTodayJobs.push(order);
-            } else if (due.getTime() === tomorrow.getTime()) {
-               dueTomorrowJobs.push(order);
-            }
-         }
-      }
-      if (order.initialStatus === 'Delivered') delivered++;
-
-      let isOverdueBalance = false;
-      const targetDateStr = order.nextDue || order.dueDate;
-      if (targetDateStr) {
-        const targetDate = new Date(targetDateStr);
-        targetDate.setHours(0, 0, 0, 0);
-        if (targetDate < today && bal > 0) {
-          isOverdueBalance = true;
+        if (due < today) {
+           overdueJobs.push(order);
+        } else if (due.getTime() === today.getTime()) {
+           dueTodayJobs.push(order);
+        } else if (due.getTime() === tomorrow.getTime()) {
+           dueTomorrowJobs.push(order);
         }
       }
-
-      if (isOverdueBalance) {
-        overdue += bal;
-      } else if (bal > 0) {
-        outstanding += bal;
-      }
-
-      const dStr = order.dateReceived || order.createdAt;
-      if (dStr) {
-        const d = new Date(dStr);
-        const sortKey = d.getFullYear() * 10000 + d.getMonth() * 100 + d.getDate();
-        
-        if (dailyDataMap[sortKey]) {
-          dailyDataMap[sortKey].gross += total;
-          dailyDataMap[sortKey].collected += pay;
-        }
-      }
-
-      const prod = order.product || 'Unknown';
-      if (!productMap[prod]) productMap[prod] = 0;
-      productMap[prod] += total;
     });
 
     overdueJobs.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
     dueTodayJobs.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
     dueTomorrowJobs.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
 
-    const formattedChartData = Object.values(dailyDataMap)
-      .sort((a, b) => a.sortKey - b.sortKey)
-      .map(({ sortKey, ...rest }) => rest);
-
-    const TABLER_BLUE_SHADES = ['#206bc4', '#4299e1', '#74c0fc', '#a5d8ff', '#e9ecef'];
-
-    const newPieData = [
-      { name: 'Collected', value: collected, color: TABLER_BLUE_SHADES[0] },    
-      { name: 'Outstanding', value: outstanding, color: TABLER_BLUE_SHADES[1] }, 
-      { name: 'Overdue', value: overdue, color: TABLER_BLUE_SHADES[2] }         
-    ].filter(d => d.value > 0);
-
-    const sortedProducts = Object.keys(productMap)
-      .map(key => ({ name: key, value: productMap[key] }))
-      .sort((a, b) => b.value - a.value);
-
-    let topProducts = sortedProducts.slice(0, 4);
-    const othersValue = sortedProducts.slice(4).reduce((sum, item) => sum + item.value, 0);
-    if (othersValue > 0) {
-      topProducts.push({ name: 'Other', value: othersValue });
-    }
-
-    topProducts = topProducts.map((item, index) => ({
-      ...item,
-      color: TABLER_BLUE_SHADES[index % TABLER_BLUE_SHADES.length]
-    })).filter(d => d.value > 0);
-
-    const topProductName = topProducts.length > 0 ? topProducts[0].name : 'N/A';
-
-    setStats({ gross, collected, outstanding, overdue, active, delivered, topProductName });
-    setChartData(formattedChartData);
-    setPieData(newPieData);
-    setProductPieData(topProducts);
     setOverdueOrders(overdueJobs);
     setDueTodayOrders(dueTodayJobs);
     setDueTomorrowOrders(dueTomorrowJobs);
-
   }, [orders, isLoading]);
 
   const formatCurrency = (value) => {
-    return new Intl.NumberFormat('en-PH', {
-      style: 'currency',
-      currency: 'PHP'
-    }).format(value);
+    return new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(value || 0);
   };
+
+  // 🚀 Instantly grab all-time totals from the Ledger
+  const gross = stats?.allTimeGross || 0;
+  const collected = stats?.allTimeCollected || 0;
+  const outstanding = Math.max(0, gross - collected);
+  
+  // Calculate specific overdue money quickly from the active overdue array
+  const overdueMoney = overdueOrders.reduce((sum, order) => {
+     const bal = Math.max(0, (parseFloat(order.totalPrice)||0) - (parseFloat(order.payment)||0));
+     return sum + bal;
+  }, 0);
+  
+  const active = stats?.activeJobs || 0;
+  const delivered = stats?.deliveredJobs || 0;
+
+  const TABLER_BLUE_SHADES = ['#206bc4', '#4299e1', '#74c0fc', '#a5d8ff', '#e9ecef'];
+
+  const pieData = [
+    { name: 'Collected', value: collected, color: TABLER_BLUE_SHADES[0] },    
+    { name: 'Outstanding', value: outstanding, color: TABLER_BLUE_SHADES[1] }, 
+    { name: 'Overdue', value: overdueMoney, color: TABLER_BLUE_SHADES[2] }         
+  ].filter(d => d.value > 0);
+
+  const productStats = stats?.productRevenue || {};
+  const sortedProducts = Object.keys(productStats)
+    .map(key => ({ name: key, value: productStats[key] }))
+    .sort((a, b) => b.value - a.value);
+
+  let productPieData = sortedProducts.slice(0, 4);
+  const othersValue = sortedProducts.slice(4).reduce((sum, item) => sum + item.value, 0);
+  if (othersValue > 0) productPieData.push({ name: 'Other', value: othersValue });
+
+  productPieData = productPieData.map((item, index) => ({
+    ...item, color: TABLER_BLUE_SHADES[index % TABLER_BLUE_SHADES.length]
+  })).filter(d => d.value > 0);
+
+  const dailyStats = stats?.dailyRevenue || {};
+  const chartData = Object.keys(dailyStats)
+    .sort((a, b) => new Date(a) - new Date(b))
+    .slice(-14)
+    .map(date => {
+      const d = new Date(date);
+      return {
+        name: d.toLocaleString('en-GB', { day: 'numeric', month: 'short' }),
+        gross: dailyStats[date].gross || 0,
+        collected: dailyStats[date].collected || 0
+      };
+    });
 
   const TablerTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
@@ -294,37 +233,37 @@ export default function Dashboard({ workspaceUid }) {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         <StatCard 
           title="Gross Revenue" 
-          value={formatCurrency(stats.gross)} 
+          value={formatCurrency(gross)} 
           colorClass="bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-500"
           icon={<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 5h-2a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-12a2 2 0 0 0 -2 -2h-2" /><path d="M9 3m0 2a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v0a2 2 0 0 1 -2 2h-2a2 2 0 0 1 -2 -2z" /><path d="M14 11h-2.5a1.5 1.5 0 0 0 0 3h1a1.5 1.5 0 0 1 0 3h-2.5" /><path d="M12 17v1m0 -8v1" /></svg>}
         />
         <StatCard 
           title="Collected" 
-          value={formatCurrency(stats.collected)} 
+          value={formatCurrency(collected)} 
           colorClass="bg-green-50 text-green-600 dark:bg-green-500/10 dark:text-green-500"
           icon={<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M7 9m0 2a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v6a2 2 0 0 1 -2 2h-10a2 2 0 0 1 -2 -2z" /><path d="M14 14m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0" /><path d="M17 9v-2a2 2 0 0 0 -2 -2h-10a2 2 0 0 0 -2 2v6a2 2 0 0 0 2 2h2" /></svg>}
         />
         <StatCard 
           title="Outstanding" 
-          value={formatCurrency(stats.outstanding)} 
+          value={formatCurrency(outstanding)} 
           colorClass="bg-yellow-50 text-yellow-600 dark:bg-yellow-500/10 dark:text-yellow-500"
           icon={<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M17 8v-3a1 1 0 0 0 -1 -1h-10a2 2 0 0 0 0 4h12a1 1 0 0 1 1 1v3m0 4v3a1 1 0 0 1 -1 1h-12a2 2 0 0 1 -2 -2v-12" /><path d="M20 12v4h-4a2 2 0 0 1 0 -4h4" /></svg>}
         />
         <StatCard 
           title="Overdue" 
-          value={formatCurrency(stats.overdue)} 
+          value={formatCurrency(overdueMoney)} 
           colorClass="bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-500"
           icon={<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" /><path d="M12 8v4" /><path d="M12 16h.01" /></svg>}
         />
         <StatCard 
           title="Active Jobs" 
-          value={stats.active} 
+          value={active} 
           colorClass="bg-cyan-50 text-cyan-600 dark:bg-cyan-500/10 dark:text-cyan-500"
           icon={<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 7m0 2a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v9a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2z" /><path d="M8 7v-2a2 2 0 0 1 2 -2h4a2 2 0 0 1 2 2v2" /><path d="M12 12l0 .01" /><path d="M3 13a20 20 0 0 0 18 0" /></svg>}
         />
         <StatCard 
           title="Jobs Delivered" 
-          value={stats.delivered} 
+          value={delivered} 
           colorClass="bg-teal-50 text-teal-600 dark:bg-teal-500/10 dark:text-teal-500"
           icon={<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M7 17m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0" /><path d="M17 17m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0" /><path d="M5 17h-2v-11a1 1 0 0 1 1 -1h9v12m-4 0h6m4 0h2v-6h-8m0 -5h5l3 5" /><path d="M3 9l4 0" /></svg>}
         />

@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { database } from './firebase';
-import { ref, get, onChildAdded, onChildChanged, onChildRemoved, onValue } from 'firebase/database';
+import { ref, get, onChildAdded, onChildChanged, onChildRemoved, onValue, query, limitToLast } from 'firebase/database';
 
 const DataContext = createContext();
 
@@ -11,26 +11,31 @@ export function DataProvider({ children, workspaceUid }) {
   const [logs, setLogs] = useState([]);
   const [staffList, setStaffList] = useState([]);
   const [labSettings, setLabSettings] = useState({ name: 'DENTAL LAB PRO', address: '', phone: '', email: '', taxId: '' });
+  const [stats, setStats] = useState(null);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
 
   useEffect(() => {
     if (!workspaceUid) {
-      setOrders([]); setTechnicians([]); setPayments([]); setLogs([]); setStaffList([]); setIsInitialLoading(false);
+      setOrders([]); setTechnicians([]); setPayments([]); setLogs([]); setStaffList([]); setStats(null); setIsInitialLoading(false);
       return;
     }
 
     let isMounted = true;
 
+    // 🚀 THE FIX: Firebase Bandwidth Saver (Limits fetch to last 1000 orders)
+    const recentOrdersQuery = query(ref(database, `users/${workspaceUid}/orders`), limitToLast(1000));
+
     async function initializeCache() {
       setIsInitialLoading(true);
       try {
-        const [ordersSnap, techsSnap, paymentsSnap, logsSnap, staffSnap, settingsSnap] = await Promise.all([
-          get(ref(database, `users/${workspaceUid}/orders`)),
+        const [ordersSnap, techsSnap, paymentsSnap, logsSnap, staffSnap, settingsSnap, statsSnap] = await Promise.all([
+          get(recentOrdersQuery),
           get(ref(database, `users/${workspaceUid}/settings/technicians`)),
           get(ref(database, `users/${workspaceUid}/payments`)),
           get(ref(database, `users/${workspaceUid}/logs`)),
           get(ref(database, `users/${workspaceUid}/staff`)),
-          get(ref(database, `users/${workspaceUid}/settings/general`))
+          get(ref(database, `users/${workspaceUid}/settings/general`)),
+          get(ref(database, `users/${workspaceUid}/stats`))
         ]);
 
         if (!isMounted) return;
@@ -56,6 +61,7 @@ export function DataProvider({ children, workspaceUid }) {
           setStaffList(Object.keys(data).map(key => ({ id: key, canCreate: data[key].canCreate ?? true, canEdit: data[key].canEdit ?? true, canDelete: data[key].canDelete ?? false, ...data[key] })));
         }
         if (settingsSnap.exists()) setLabSettings(prev => ({ ...prev, ...settingsSnap.val() }));
+        if (statsSnap.exists()) setStats(statsSnap.val());
 
       } catch (err) {
         console.error("Cache initialization failed:", err);
@@ -66,25 +72,23 @@ export function DataProvider({ children, workspaceUid }) {
 
     initializeCache();
 
-    // Delta Listeners: transmit only altered items, not whole collections
-    const ordersRef = ref(database, `users/${workspaceUid}/orders`);
+    // Attach delta listeners to the limited query
     let initialOrdersComplete = false;
-    get(ordersRef).then(() => { initialOrdersComplete = true; });
+    get(recentOrdersQuery).then(() => { initialOrdersComplete = true; });
     
-    const unsubOrderAdd = onChildAdded(ordersRef, (snap) => {
+    const unsubOrderAdd = onChildAdded(recentOrdersQuery, (snap) => {
       if (!initialOrdersComplete) return;
       const newOrder = { id: snap.key, ...snap.val() };
       setOrders(prev => [newOrder, ...prev.filter(o => o.id !== newOrder.id)]);
     });
-    const unsubOrderChange = onChildChanged(ordersRef, (snap) => {
+    const unsubOrderChange = onChildChanged(recentOrdersQuery, (snap) => {
       const updated = { id: snap.key, ...snap.val() };
       setOrders(prev => prev.map(o => o.id === updated.id ? updated : o));
     });
-    const unsubOrderRemove = onChildRemoved(ordersRef, (snap) => {
+    const unsubOrderRemove = onChildRemoved(recentOrdersQuery, (snap) => {
       setOrders(prev => prev.filter(o => o.id !== snap.key));
     });
 
-    // Payments Delta
     const payRef = ref(database, `users/${workspaceUid}/payments`);
     let initialPayComplete = false;
     get(payRef).then(() => { initialPayComplete = true; });
@@ -94,7 +98,6 @@ export function DataProvider({ children, workspaceUid }) {
       setPayments(prev => [newPay, ...prev.filter(p => p.id !== newPay.id)].sort((a,b)=> new Date(b.timestamp) - new Date(a.timestamp)));
     });
 
-    // Logs Delta
     const logsRef = ref(database, `users/${workspaceUid}/logs`);
     let initialLogsComplete = false;
     get(logsRef).then(() => { initialLogsComplete = true; });
@@ -104,7 +107,6 @@ export function DataProvider({ children, workspaceUid }) {
       setLogs(prev => [newLog, ...prev.filter(l => l.id !== newLog.id)].sort((a,b)=> new Date(b.timestamp) - new Date(a.timestamp)));
     });
 
-    // Settings, Techs, and Staff can remain as simple onValue since they are tiny
     const settingsRef = ref(database, `users/${workspaceUid}/settings/general`);
     const unsubSet = onValue(settingsRef, (snap) => { if(snap.exists()) setLabSettings(prev => ({ ...prev, ...snap.val() })); });
 
@@ -124,16 +126,21 @@ export function DataProvider({ children, workspaceUid }) {
       } else setStaffList([]);
     });
 
+    const statsRef = ref(database, `users/${workspaceUid}/stats`);
+    const unsubStats = onValue(statsRef, (snap) => {
+       if(snap.exists()) setStats(snap.val());
+    });
+
     return () => {
       isMounted = false;
       unsubOrderAdd(); unsubOrderChange(); unsubOrderRemove();
       unsubPayAdd(); unsubLogAdd();
-      unsubSet(); unsubTechs(); unsubStaff();
+      unsubSet(); unsubTechs(); unsubStaff(); unsubStats();
     };
   }, [workspaceUid]);
 
   return (
-    <DataContext.Provider value={{ orders, technicians, payments, logs, staffList, labSettings, isInitialLoading }}>
+    <DataContext.Provider value={{ orders, technicians, payments, logs, staffList, labSettings, stats, isInitialLoading }}>
       {children}
     </DataContext.Provider>
   );

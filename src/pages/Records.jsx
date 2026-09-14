@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { database } from '../firebase';
-import { ref, remove, update, push } from 'firebase/database';
+import { ref, get, remove, update, push, runTransaction } from 'firebase/database';
 import { useToast } from '../ToastContext';
 import { useData } from '../DataContext';
 
@@ -9,6 +9,7 @@ export default function Records({ workspaceUid, userProfile }) {
   const { orders, technicians, labSettings, isInitialLoading: isLoading } = useData();
   
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState(''); 
   const [productFilter, setProductFilter] = useState('All');
   const [paymentFilter, setPaymentFilter] = useState('All');
   
@@ -26,6 +27,10 @@ export default function Records({ workspaceUid, userProfile }) {
   const [openDropdownId, setOpenDropdownId] = useState(null);
   const [orderToDelete, setOrderToDelete] = useState(null);
 
+  // 🚀 NEW: Deep Server Search State
+  const [isDeepSearching, setIsDeepSearching] = useState(false);
+  const [deepSearchResults, setDeepSearchResults] = useState(null);
+
   const canEdit = userProfile?.permissions?.canEdit ?? true;
   const canDelete = userProfile?.permissions?.canDelete ?? false;
 
@@ -36,16 +41,96 @@ export default function Records({ workspaceUid, userProfile }) {
   }, []);
 
   useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, productFilter, paymentFilter]);
+  }, [debouncedSearch, productFilter, paymentFilter, deepSearchResults]);
+
+  // 🚀 NEW: Direct Server Search Logic
+  const handleDeepSearch = async () => {
+    if (!workspaceUid || !searchTerm.trim()) return;
+    
+    setIsDeepSearching(true);
+    addToast("Scanning entire database history...", "info");
+    
+    try {
+      const snap = await get(ref(database, `users/${workspaceUid}/orders`));
+      if (snap.exists()) {
+        const allData = snap.val();
+        const searchLower = searchTerm.toLowerCase();
+        
+        const results = Object.keys(allData)
+          .map(key => ({ id: key, ...allData[key] }))
+          .filter(o => 
+             (o.rxNumber || '').toLowerCase().includes(searchLower) ||
+             (o.patientName || '').toLowerCase().includes(searchLower) ||
+             (o.dentistName || '').toLowerCase().includes(searchLower)
+          ).reverse();
+          
+        setDeepSearchResults(results);
+        
+        if (results.length > 0) {
+           addToast(`Deep search found ${results.length} historical records.`, "success");
+        } else {
+           addToast("No records found in the entire database.", "error");
+        }
+      } else {
+        setDeepSearchResults([]);
+      }
+    } catch (error) {
+      addToast("Failed to search server.", "error");
+    } finally {
+      setIsDeepSearching(false);
+    }
+  };
+
+  const clearDeepSearch = () => {
+    setDeepSearchResults(null);
+    setSearchTerm('');
+  };
 
   const confirmDelete = async () => {
     if (!workspaceUid || !orderToDelete) return;
     
     try {
       const orderId = orderToDelete.id;
+      
+      const deletedTotal = parseFloat(orderToDelete.totalPrice) || 0;
+      const deletedPayment = parseFloat(orderToDelete.payment) || 0;
+      const safeProd = (orderToDelete.product || 'Unknown').replace(/[\.\#\$\/\[\]]/g, '-');
+      const dateStr = (orderToDelete.dateReceived || orderToDelete.createdAt || new Date().toISOString()).substring(0, 10);
+      const deletedStatus = orderToDelete.initialStatus;
+
       await remove(ref(database, `users/${workspaceUid}/orders/${orderId}`));
       
+      await runTransaction(ref(database, `users/${workspaceUid}/stats`), (stats) => {
+        if (stats) {
+          stats.allTimeGross = Math.max(0, (stats.allTimeGross || 0) - deletedTotal);
+          stats.allTimeCollected = Math.max(0, (stats.allTimeCollected || 0) - deletedPayment);
+          
+          if (deletedStatus === 'In progress') {
+            stats.activeJobs = Math.max(0, (stats.activeJobs || 0) - 1);
+          } else if (deletedStatus === 'Delivered') {
+            stats.deliveredJobs = Math.max(0, (stats.deliveredJobs || 0) - 1);
+          }
+
+          if (stats.productRevenue && stats.productRevenue[safeProd]) {
+            stats.productRevenue[safeProd] = Math.max(0, stats.productRevenue[safeProd] - deletedTotal);
+          }
+
+          if (stats.dailyRevenue && stats.dailyRevenue[dateStr]) {
+            stats.dailyRevenue[dateStr].gross = Math.max(0, stats.dailyRevenue[dateStr].gross - deletedTotal);
+            stats.dailyRevenue[dateStr].collected = Math.max(0, stats.dailyRevenue[dateStr].collected - deletedPayment);
+          }
+        }
+        return stats;
+      });
+
       const logsRef = ref(database, `users/${workspaceUid}/logs`);
       await push(logsRef, {
         action: 'DELETE',
@@ -59,6 +144,7 @@ export default function Records({ workspaceUid, userProfile }) {
       });
       
       addToast("Order deleted successfully.", "success");
+      if (deepSearchResults) setDeepSearchResults(prev => prev.filter(o => o.id !== orderId));
     } catch (error) {
       addToast("Failed to delete order.", "error");
     } finally {
@@ -117,7 +203,10 @@ export default function Records({ workspaceUid, userProfile }) {
       const updateData = { ...editingOrder };
       delete updateData.id;
 
-      const originalOrder = orders.find(o => o.id === orderId);
+      // Ensure we have the original data even if deep searching
+      const sourceList = deepSearchResults || orders;
+      const originalOrder = sourceList.find(o => o.id === orderId);
+      
       let changes = [];
       if (originalOrder) {
         if (originalOrder.patientName !== updateData.patientName) changes.push(`Name to ${updateData.patientName}`);
@@ -133,6 +222,51 @@ export default function Records({ workspaceUid, userProfile }) {
 
       await update(ref(database, `users/${workspaceUid}/orders/${orderId}`), updateData);
       
+      if (originalOrder) {
+        await runTransaction(ref(database, `users/${workspaceUid}/stats`), (stats) => {
+          if (stats) {
+            const oldTotal = parseFloat(originalOrder.totalPrice) || 0;
+            const newTotal = parseFloat(updateData.totalPrice) || 0;
+            const diffTotal = newTotal - oldTotal;
+
+            const oldProd = (originalOrder.product || 'Unknown').replace(/[\.\#\$\/\[\]]/g, '-');
+            const newProd = (updateData.product || 'Unknown').replace(/[\.\#\$\/\[\]]/g, '-');
+
+            const oldDate = (originalOrder.dateReceived || originalOrder.createdAt || new Date().toISOString()).substring(0, 10);
+            const newDate = (updateData.dateReceived || updateData.createdAt || new Date().toISOString()).substring(0, 10);
+
+            stats.allTimeGross = (stats.allTimeGross || 0) + diffTotal;
+
+            if (!stats.productRevenue) stats.productRevenue = {};
+            if (oldProd === newProd) {
+                stats.productRevenue[oldProd] = (stats.productRevenue[oldProd] || 0) + diffTotal;
+            } else {
+                stats.productRevenue[oldProd] = Math.max(0, (stats.productRevenue[oldProd] || 0) - oldTotal);
+                stats.productRevenue[newProd] = (stats.productRevenue[newProd] || 0) + newTotal;
+            }
+
+            if (!stats.dailyRevenue) stats.dailyRevenue = {};
+            if (oldDate === newDate) {
+                if (!stats.dailyRevenue[oldDate]) stats.dailyRevenue[oldDate] = { gross: 0, collected: 0 };
+                stats.dailyRevenue[oldDate].gross += diffTotal;
+            } else {
+                if (stats.dailyRevenue[oldDate]) {
+                    stats.dailyRevenue[oldDate].gross = Math.max(0, stats.dailyRevenue[oldDate].gross - oldTotal);
+                }
+                if (!stats.dailyRevenue[newDate]) stats.dailyRevenue[newDate] = { gross: 0, collected: 0 };
+                stats.dailyRevenue[newDate].gross += newTotal;
+                
+                const pay = parseFloat(originalOrder.payment) || 0;
+                if (stats.dailyRevenue[oldDate]) {
+                    stats.dailyRevenue[oldDate].collected = Math.max(0, stats.dailyRevenue[oldDate].collected - pay);
+                }
+                stats.dailyRevenue[newDate].collected += pay;
+            }
+          }
+          return stats;
+        });
+      }
+
       const logsRef = ref(database, `users/${workspaceUid}/logs`);
       await push(logsRef, {
         action: 'UPDATE',
@@ -148,6 +282,11 @@ export default function Records({ workspaceUid, userProfile }) {
       setIsInfoModalOpen(false);
       setEditingOrder(null);
       addToast("Order information updated.", "success");
+      
+      // Update local deep search cache if active
+      if (deepSearchResults) {
+        setDeepSearchResults(prev => prev.map(o => o.id === orderId ? { ...updateData, id: orderId } : o));
+      }
     } catch (error) {
       addToast("Failed to update information.", "error");
     }
@@ -159,7 +298,6 @@ export default function Records({ workspaceUid, userProfile }) {
 
     try {
       const orderId = editingOrder.id;
-      const originalOrder = orders.find(o => o.id === orderId);
       
       const total = parseFloat(editingOrder.totalPrice) || 0;
       const currentPayment = parseFloat(editingOrder.payment) || 0;
@@ -196,9 +334,6 @@ export default function Records({ workspaceUid, userProfile }) {
       if (addedPayment > 0) {
         summaryParts.push(`Added payment of ₱${addedPayment.toLocaleString()}`);
       }
-      if (originalOrder && originalOrder.initialStatus !== updateData.initialStatus) {
-        summaryParts.push(`Updated Job Status to ${updateData.initialStatus}`);
-      }
       if (summaryParts.length === 0) {
         summaryParts.push('Updated payment details');
       }
@@ -206,6 +341,30 @@ export default function Records({ workspaceUid, userProfile }) {
 
       await update(ref(database, `users/${workspaceUid}/orders/${orderId}`), updateData);
       
+      await runTransaction(ref(database, `users/${workspaceUid}/stats`), (stats) => {
+        if (stats) {
+          if (addedPayment > 0) {
+            stats.allTimeCollected = (stats.allTimeCollected || 0) + addedPayment;
+
+            const dateStr = (editingOrder.dateReceived || editingOrder.createdAt || new Date().toISOString()).substring(0, 10);
+            if (!stats.dailyRevenue) stats.dailyRevenue = {};
+            if (!stats.dailyRevenue[dateStr]) stats.dailyRevenue[dateStr] = { gross: 0, collected: 0 };
+            stats.dailyRevenue[dateStr].collected += addedPayment;
+          }
+
+          if (editingOrder.initialStatus !== updateData.initialStatus) {
+            if (updateData.initialStatus === 'Delivered') {
+                stats.deliveredJobs = (stats.deliveredJobs || 0) + 1;
+                stats.activeJobs = Math.max(0, (stats.activeJobs || 0) - 1);
+            } else if (updateData.initialStatus === 'In progress') {
+                stats.activeJobs = (stats.activeJobs || 0) + 1;
+                stats.deliveredJobs = Math.max(0, (stats.deliveredJobs || 0) - 1);
+            }
+          }
+        }
+        return stats;
+      });
+
       const logsRef = ref(database, `users/${workspaceUid}/logs`);
       await push(logsRef, {
         action: 'UPDATE',
@@ -222,110 +381,33 @@ export default function Records({ workspaceUid, userProfile }) {
       setEditingOrder(null);
       setNewPaymentAmount('');
       addToast("Payment and status updated.", "success");
+      
+      if (deepSearchResults) {
+        setDeepSearchResults(prev => prev.map(o => o.id === orderId ? { ...updateData, id: orderId } : o));
+      }
     } catch (error) {
       addToast("Failed to update payment.", "error");
     }
   };
 
-  const handlePrint = (order) => {
-    const settings = labSettings || { name: 'Fano Laboratory', address: '', phone: '', email: '', taxId: '' };
+  // 🚀 Switch between local 1000 orders or the Deep Search results
+  const searchSource = deepSearchResults || orders;
 
-    const htmlContent = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Order Slip - ${order.rxNumber}</title>
-          <style>
-            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-            body { font-family: 'Inter', sans-serif; padding: 40px; color: #333; line-height: 1.6; font-size: 14px; }
-            .header { text-align: center; margin-bottom: 40px; border-bottom: 1px solid #e6e8eb; padding-bottom: 24px; }
-            .header h1 { margin: 0; font-size: 24px; color: #111; letter-spacing: -0.5px; }
-            .header p { margin: 6px 0 0 0; color: #667382; font-size: 12px; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 600; }
-            .row { display: flex; justify-content: space-between; margin-bottom: 24px; }
-            .col { flex: 1; }
-            .label { font-size: 11px; text-transform: uppercase; color: #888; font-weight: 600; display: block; margin-bottom: 4px; letter-spacing: 0.5px; }
-            .value { font-size: 15px; font-weight: 500; color: #111; }
-            table { width: 100%; border-collapse: collapse; margin-top: 32px; margin-bottom: 32px; }
-            th { border-bottom: 2px solid #111; text-align: left; padding: 12px 8px; font-size: 12px; text-transform: uppercase; color: #444; letter-spacing: 0.5px; }
-            td { border-bottom: 1px solid #e6e8eb; padding: 16px 8px; font-size: 14px; color: #111; }
-            .total-section { float: right; width: 320px; }
-            .total-row { display: flex; justify-content: space-between; padding: 8px 0; color: #444; }
-            .total-row.grand-total { font-weight: 700; font-size: 18px; border-top: 2px solid #111; padding-top: 12px; margin-top: 4px; color: #111; }
-            .notes { clear: both; padding-top: 40px; margin-top: 40px; }
-            .notes-box { border: 1px solid #e6e8eb; padding: 20px; border-radius: 6px; background: #fafafa; }
-            @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <h1>${settings.name || 'Fano Laboratory'}</h1>
-            <p>Laboratory Order Slip</p>
-            ${settings.address ? `<p style="text-transform: none; color: #666; font-weight: normal; margin-top: 4px;">${settings.address}</p>` : ''}
-            ${settings.phone || settings.email ? `<p style="text-transform: none; color: #666; font-weight: normal; margin-top: 2px;">${settings.phone ? settings.phone : ''} ${settings.phone && settings.email ? ' | ' : ''} ${settings.email ? settings.email : ''}</p>` : ''}
-            ${settings.taxId ? `<p style="text-transform: none; color: #888; font-weight: normal; margin-top: 2px; font-size: 11px;">TIN: ${settings.taxId}</p>` : ''}
-          </div>
-          <div class="row">
-            <div class="col"><span class="label">RX No.</span><span class="value">${order.rxNumber}</span></div>
-            <div class="col"><span class="label">Date Received</span><span class="value">${order.dateReceived}</span></div>
-            <div class="col" style="text-align: right;"><span class="label">Due Date</span><span class="value">${order.dueDate}</span></div>
-          </div>
-          <div class="row" style="margin-top: 32px;">
-            <div class="col"><span class="label">Dentist</span><span class="value">${order.dentistName}</span></div>
-            <div class="col"><span class="label">Patient</span><span class="value">${order.patientName}</span></div>
-          </div>
-          <table>
-            <thead>
-              <tr><th>Product Description</th><th>Shade</th><th>Status</th><th style="text-align: center;">Qty (pcs)</th><th style="text-align: right;">Amount</th></tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td><strong style="display:block; margin-bottom: 2px;">${order.product}</strong><span style="font-size: 12px; color: #666;">Tech: ${order.techIncharge || 'Unassigned'}</span></td>
-                <td>${order.shade}</td><td>${order.initialStatus}</td><td style="text-align: center;">${order.units}</td><td style="text-align: right;">₱ ${parseFloat(order.totalPrice || 0).toFixed(2)}</td>
-              </tr>
-            </tbody>
-          </table>
-          <div class="total-section">
-            <div class="total-row"><span>Subtotal</span><span>₱ ${parseFloat(order.totalPrice || 0).toFixed(2)}</span></div>
-            <div class="total-row"><span>Payment (${order.payType || 'Unpaid'})</span><span>- ₱ ${parseFloat(order.payment || 0).toFixed(2)}</span></div>
-            <div class="total-row grand-total"><span>Balance Due</span><span>₱ ${parseFloat(order.balance || order.totalPrice || 0).toFixed(2)}</span></div>
-          </div>
-          <div class="notes">
-            <div class="notes-box">
-              <span class="label">Additional Instructions</span><p style="margin: 6px 0 16px 0;">${order.descriptions || 'No special instructions provided.'}</p>
-              <span class="label">Logistics</span><p style="margin: 6px 0 0 0; font-size: 13px;"><strong>Pick up:</strong> ${order.pickUpBy || 'N/A'} &nbsp;|&nbsp; <strong>Delivery:</strong> ${order.deliverBy || 'N/A'}</p>
-            </div>
-          </div>
-        </body>
-      </html>
-    `;
-
-    const iframe = document.createElement('iframe');
-    iframe.style.position = 'absolute';
-    iframe.style.width = '0px';
-    iframe.style.height = '0px';
-    iframe.style.border = 'none';
-    document.body.appendChild(iframe);
-
-    const doc = iframe.contentWindow.document;
-    doc.open();
-    doc.write(htmlContent);
-    doc.close();
-
-    iframe.onload = () => {
-      iframe.contentWindow.focus();
-      iframe.contentWindow.print();
-      setTimeout(() => document.body.removeChild(iframe), 1000);
-    };
-  };
-
-  const filteredOrders = orders.filter(order => {
-    const matchesSearch = (order.rxNumber || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          (order.patientName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          (order.dentistName || '').toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredOrders = searchSource.filter(order => {
+    // If we are deep searching, the results are already filtered. 
+    // We only apply the debounced search to local data.
+    if (!deepSearchResults) {
+      const searchLower = debouncedSearch.toLowerCase();
+      const matchesSearch = (order.rxNumber || '').toLowerCase().includes(searchLower) ||
+                            (order.patientName || '').toLowerCase().includes(searchLower) ||
+                            (order.dentistName || '').toLowerCase().includes(searchLower);
+      if (!matchesSearch) return false;
+    }
+    
     const matchesProduct = productFilter === 'All' || order.product === productFilter;
     const matchesPayment = paymentFilter === 'All' || order.payType === paymentFilter;
     
-    return matchesSearch && matchesProduct && matchesPayment;
+    return matchesProduct && matchesPayment;
   });
 
   const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
@@ -350,9 +432,12 @@ export default function Records({ workspaceUid, userProfile }) {
       <div className="bg-surfaceLight dark:bg-surfaceDark border border-borderLight dark:border-borderDark rounded-md shadow-sm flex flex-col overflow-visible transition-colors duration-200">
         
         <div className="px-5 py-4 border-b border-borderLight dark:border-borderDark flex flex-col xl:flex-row xl:items-center justify-between gap-4">
-          <h2 className="text-base font-semibold text-textLight dark:text-textDark whitespace-nowrap">Laboratory Records</h2>
+          <h2 className="text-base font-semibold text-textLight dark:text-textDark whitespace-nowrap">
+            Laboratory Records
+          </h2>
           
           <div className="flex flex-col sm:flex-row gap-4 w-full xl:w-auto items-center">
+            
             <div className="flex items-center gap-2 text-sm text-mutedLight dark:text-mutedDark">
               <span>Show</span>
               <select value={productFilter} onChange={(e) => setProductFilter(e.target.value)} className="w-24 px-2.5 py-1.5 text-sm bg-white dark:bg-[#182433] border border-gray-300 dark:border-[#3a4859] rounded text-gray-900 dark:text-white focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-colors shadow-sm">
@@ -377,12 +462,45 @@ export default function Records({ workspaceUid, userProfile }) {
                 <option value="All">All</option><option value="Unpaid">Unpaid</option><option value="Partial">Partial</option><option value="Fully Paid">Paid</option>
               </select>
             </div>
+            
+            {/* 🚀 NEW: Deep Search Bar Interface */}
             <div className="flex items-center gap-2 text-sm text-mutedLight dark:text-mutedDark sm:ml-4">
               <span>Search:</span>
-              <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-48 px-3 py-1.5 text-sm bg-white dark:bg-[#182433] border border-gray-300 dark:border-[#3a4859] rounded text-gray-900 dark:text-white focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-colors shadow-sm" />
+              <div className="flex items-center gap-2">
+                <div className="relative w-48">
+                  <input 
+                    type="text" 
+                    value={searchTerm} 
+                    onChange={(e) => setSearchTerm(e.target.value)} 
+                    disabled={deepSearchResults !== null}
+                    placeholder="RX, Name, Dentist..." 
+                    className={`block w-full px-3 py-1.5 pl-8 text-sm bg-white dark:bg-[#182433] border border-gray-300 dark:border-[#3a4859] rounded text-gray-900 dark:text-white focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-colors shadow-sm ${deepSearchResults ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  />
+                  <svg xmlns="http://www.w3.org/2000/svg" className="absolute left-2.5 top-2 h-4 w-4 text-gray-400 dark:text-gray-500" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" /></svg>
+                </div>
+                
+                {searchTerm.trim() !== '' && !deepSearchResults && (
+                  <button onClick={handleDeepSearch} disabled={isDeepSearching} className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded shadow-sm hover:bg-indigo-700 transition-colors whitespace-nowrap disabled:opacity-50">
+                    {isDeepSearching ? 'Searching...' : 'Deep Search Server'}
+                  </button>
+                )}
+                
+                {deepSearchResults && (
+                  <button onClick={clearDeepSearch} className="px-3 py-1.5 bg-red-50 text-red-600 border border-red-200 dark:bg-red-900/30 dark:border-red-800 dark:text-red-400 text-xs font-bold rounded shadow-sm hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors whitespace-nowrap">
+                    Clear Search
+                  </button>
+                )}
+              </div>
             </div>
+            
           </div>
         </div>
+
+        {deepSearchResults && (
+          <div className="px-5 py-2.5 bg-indigo-50 border-b border-indigo-100 dark:bg-indigo-900/20 dark:border-indigo-800/30 flex items-center justify-between text-sm text-indigo-700 dark:text-indigo-300">
+            <span><strong>Deep Search Mode Active.</strong> Showing historical server results for "{searchTerm}".</span>
+          </div>
+        )}
 
         <div className="overflow-visible min-h-[400px]">
           <table className="w-full text-left border-collapse">
@@ -390,21 +508,23 @@ export default function Records({ workspaceUid, userProfile }) {
               <tr className="bg-surfaceLight dark:bg-surfaceDark border-b border-borderLight dark:border-borderDark">
                 <th className="px-5 py-2.5 text-xs font-semibold text-mutedLight dark:text-mutedDark uppercase tracking-wider">RX No.</th>
                 <th className="px-5 py-2.5 text-xs font-semibold text-mutedLight dark:text-mutedDark uppercase tracking-wider">Product</th>
+                <th className="px-5 py-2.5 text-xs font-semibold text-mutedLight dark:text-mutedDark uppercase tracking-wider text-center">Units</th>
                 <th className="px-5 py-2.5 text-xs font-semibold text-mutedLight dark:text-mutedDark uppercase tracking-wider">Dentist</th>
-                <th className="px-5 py-2.5 text-xs font-semibold text-mutedLight dark:text-mutedDark uppercase tracking-wider">Created</th>
+                <th className="px-5 py-2.5 text-xs font-semibold text-mutedLight dark:text-mutedDark uppercase tracking-wider">Technician</th>
                 <th className="px-5 py-2.5 text-xs font-semibold text-mutedLight dark:text-mutedDark uppercase tracking-wider">Payment Status</th>
                 <th className="px-5 py-2.5 text-xs font-semibold text-mutedLight dark:text-mutedDark uppercase tracking-wider">Job Status</th>
                 <th className="px-5 py-2.5"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-borderLight dark:divide-borderDark">
-              {isLoading ? (
+              {isLoading && !isDeepSearching ? (
                 Array(5).fill(0).map((_, i) => (
                   <tr key={i} className="animate-pulse bg-surfaceLight dark:bg-surfaceDark">
                     <td className="px-5 py-4"><div className="h-4 bg-pageLight dark:bg-pageDark rounded w-16"></div></td>
                     <td className="px-5 py-4"><div className="h-4 bg-pageLight dark:bg-pageDark rounded w-24"></div></td>
+                    <td className="px-5 py-4"><div className="h-4 bg-pageLight dark:bg-pageDark rounded w-10 mx-auto"></div></td>
                     <td className="px-5 py-4"><div className="h-4 bg-pageLight dark:bg-pageDark rounded w-32"></div></td>
-                    <td className="px-5 py-4"><div className="h-4 bg-pageLight dark:bg-pageDark rounded w-20"></div></td>
+                    <td className="px-5 py-4"><div className="h-4 bg-pageLight dark:bg-pageDark rounded w-24"></div></td>
                     <td className="px-5 py-4"><div className="h-4 bg-pageLight dark:bg-pageDark rounded w-16"></div></td>
                     <td className="px-5 py-4"><div className="h-4 bg-pageLight dark:bg-pageDark rounded w-16"></div></td>
                     <td className="px-5 py-4 flex justify-end"><div className="h-6 bg-pageLight dark:bg-pageDark rounded w-20"></div></td>
@@ -412,8 +532,8 @@ export default function Records({ workspaceUid, userProfile }) {
                 ))
               ) : currentOrders.length === 0 ? (
                 <tr>
-                  <td colSpan="7" className="px-5 py-6 text-center text-mutedLight dark:text-mutedDark text-sm">
-                    No orders found.
+                  <td colSpan="8" className="px-5 py-8 text-center text-mutedLight dark:text-mutedDark text-sm">
+                    {isDeepSearching ? 'Searching database...' : 'No orders found.'}
                   </td>
                 </tr>
               ) : (
@@ -421,8 +541,9 @@ export default function Records({ workspaceUid, userProfile }) {
                   <tr key={order.id} className="hover:bg-pageLight dark:hover:bg-pageDark transition-colors">
                     <td className="px-5 py-3 text-sm text-mutedLight dark:text-mutedDark whitespace-nowrap">{order.rxNumber}</td>
                     <td className="px-5 py-3 text-sm text-textLight dark:text-textDark whitespace-nowrap font-medium">{order.product}</td>
+                    <td className="px-5 py-3 text-sm text-mutedLight dark:text-mutedDark whitespace-nowrap text-center">{order.units || '-'}</td>
                     <td className="px-5 py-3 text-sm text-textLight dark:text-textDark whitespace-nowrap">{order.dentistName}</td>
-                    <td className="px-5 py-3 text-sm text-textLight dark:text-textDark whitespace-nowrap">{order.dateReceived}</td>
+                    <td className="px-5 py-3 text-sm text-textLight dark:text-textDark whitespace-nowrap">{order.techIncharge || 'Unassigned'}</td>
                     <td className="px-5 py-3 text-sm whitespace-nowrap align-middle">
                       <span className={`inline-flex items-center px-2 py-1 rounded text-[11px] font-bold uppercase tracking-wider w-fit ${
                         order.payType === 'Fully Paid' ? 'text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/30' : order.payType === 'Partial' ? 'text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30' : 'text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/30'
@@ -433,7 +554,7 @@ export default function Records({ workspaceUid, userProfile }) {
                         order.initialStatus === 'Delivered' ? 'text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/30' : 'text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30'
                       }`}>{order.initialStatus}</span>
                     </td>
-                    <td className="px-5 py-3 text-sm text-right whitespace-nowrap relative">
+                    <td className="px-5 py-3 text-right whitespace-nowrap relative">
                       <button 
                         onClick={(e) => {
                           e.stopPropagation();
@@ -451,9 +572,6 @@ export default function Records({ workspaceUid, userProfile }) {
                             View Details
                           </button>
                           <div className="h-px bg-borderLight dark:bg-borderDark w-full my-1"></div>
-                          <button onClick={(e) => { e.stopPropagation(); handlePrint(order); setOpenDropdownId(null); }} className="w-full text-left px-3 py-1.5 text-sm text-textLight dark:text-textDark hover:bg-pageLight dark:hover:bg-pageDark transition-colors">
-                            Print Slip
-                          </button>
                           {canEdit && (
                             <>
                               <button onClick={(e) => { e.stopPropagation(); handleEditInfoClick(order); setOpenDropdownId(null); }} className="w-full text-left px-3 py-1.5 text-sm text-textLight dark:text-textDark hover:bg-pageLight dark:hover:bg-pageDark transition-colors">
@@ -640,7 +758,7 @@ export default function Records({ workspaceUid, userProfile }) {
             <div className="px-5 py-3.5 border-b border-borderLight dark:border-borderDark flex items-center justify-between">
               <h3 className="text-base font-semibold text-textLight dark:text-textDark">Update Payment: {editingOrder.rxNumber}</h3>
               <button onClick={() => setIsPaymentModalOpen(false)} className="text-mutedLight dark:text-mutedDark hover:text-textLight dark:hover:text-textDark">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
               </button>
             </div>
             <div className="overflow-y-auto p-5 flex-1">

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { database } from '../firebase';
-import { ref, push, set } from 'firebase/database';
+import { ref, push, set, runTransaction } from 'firebase/database';
 import { useToast } from '../ToastContext';
 import { useData } from '../DataContext'; 
 
@@ -133,6 +133,34 @@ export default function OrderLayout({ workspaceUid, userProfile }) {
           recordedBy: userProfile?.name || 'Unknown'
         });
       }
+
+      // 🚀 THE FIX: Instantly add this new order's money to the Bank Ledger
+      await runTransaction(ref(database, `users/${workspaceUid}/stats`), (stats) => {
+        if (stats) {
+          const total = parseFloat(formData.totalPrice) || 0;
+          const pay = parseFloat(formData.payment) || 0;
+          const safeProd = (formData.product || 'Unknown').replace(/[\.\#\$\/\[\]]/g, '-');
+          const dateStr = (formData.dateReceived || new Date().toISOString()).substring(0, 10);
+
+          stats.allTimeGross = (stats.allTimeGross || 0) + total;
+          stats.allTimeCollected = (stats.allTimeCollected || 0) + pay;
+          
+          if (formData.initialStatus === 'In progress') {
+            stats.activeJobs = (stats.activeJobs || 0) + 1;
+          } else {
+            stats.deliveredJobs = (stats.deliveredJobs || 0) + 1;
+          }
+
+          if (!stats.productRevenue) stats.productRevenue = {};
+          stats.productRevenue[safeProd] = (stats.productRevenue[safeProd] || 0) + total;
+
+          if (!stats.dailyRevenue) stats.dailyRevenue = {};
+          if (!stats.dailyRevenue[dateStr]) stats.dailyRevenue[dateStr] = { gross: 0, collected: 0 };
+          stats.dailyRevenue[dateStr].gross += total;
+          stats.dailyRevenue[dateStr].collected += pay;
+        }
+        return stats;
+      });
 
       const logsRef = ref(database, `users/${workspaceUid}/logs`);
       await push(logsRef, {

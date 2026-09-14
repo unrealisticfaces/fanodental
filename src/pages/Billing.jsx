@@ -4,10 +4,13 @@ import { useData } from '../DataContext';
 
 export default function Billing({ workspaceUid }) {
   const { addToast } = useToast();
-  const { orders, payments: transactions, labSettings, isInitialLoading: isLoading } = useData();
+  // Read stats from DataContext so Total Gross Revenue reflects the all-time 7M
+  const { orders, payments: transactions, labSettings, stats, isInitialLoading: isLoading } = useData();
   const [activeTab, setActiveTab] = useState('sales');
   
-  const dentists = [...new Set(orders.map(o => o.dentistName?.trim()).filter(Boolean))].sort();
+  const allOrders = orders || [];
+  
+  const dentists = [...new Set(allOrders.map(o => o.dentistName?.trim()).filter(Boolean))].sort();
   
   const [invoiceSearch, setInvoiceSearch] = useState('');
   const [invoiceDateFilter, setInvoiceDateFilter] = useState('All');
@@ -43,7 +46,7 @@ export default function Billing({ workspaceUid }) {
   useEffect(() => { setInvoicesPage(1); }, [invoiceSearch, invoiceDateFilter, invoiceCustomDate, invoiceCustomMonth, paymentStatusFilter]);
   useEffect(() => { setCustomersPage(1); }, [customerSearch]);
 
-  const filteredInvoices = orders.filter(o => {
+  const filteredInvoices = allOrders.filter(o => {
     const searchLower = invoiceSearch.toLowerCase();
     const matchesSearch = (o.dentistName || '').toLowerCase().includes(searchLower) ||
                           (o.rxNumber || '').toLowerCase().includes(searchLower) ||
@@ -84,13 +87,12 @@ export default function Billing({ workspaceUid }) {
   });
 
   const customerStats = dentists.map(dentist => {
-    const dentistOrders = orders.filter(o => o.dentistName?.trim() === dentist);
+    const dentistOrders = allOrders.filter(o => o.dentistName?.trim() === dentist);
     const totalOrders = dentistOrders.length;
     const gross = dentistOrders.reduce((sum, o) => sum + (parseFloat(o.totalPrice) || 0), 0);
     const paid = dentistOrders.reduce((sum, o) => sum + (parseFloat(o.payment) || 0), 0);
     const balance = dentistOrders.reduce((sum, o) => sum + (parseFloat(o.balance) || 0), 0);
     
-    // Extract ALL RX numbers for display
     const allRxs = dentistOrders.map(o => o.rxNumber).filter(Boolean);
 
     return { name: dentist, totalOrders, gross, paid, balance, orders: dentistOrders, allRxs };
@@ -212,12 +214,12 @@ export default function Billing({ workspaceUid }) {
   };
 
   const handleGenerateReport = () => {
-    if (orders.length === 0) return addToast("No records available to generate report.", "error");
+    if (allOrders.length === 0) return addToast("No records available to generate report.", "error");
 
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
 
-    const filteredReportOrders = orders.filter(o => {
+    const filteredReportOrders = allOrders.filter(o => {
       const orderDateObj = new Date(o.dateReceived || o.createdAt);
       const orderTime = orderDateObj.getTime();
 
@@ -463,7 +465,9 @@ export default function Billing({ workspaceUid }) {
 
       {activeTab === 'sales' && (
         <div className="space-y-6 animate-in fade-in">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            {/* Reads directly from Bank Ledger (stats) so it matches the Dashboard's 7M */}
+            <StatCard title="Total Gross Revenue" value={formatCurrency(stats?.allTimeGross || 0)} colorClass="text-blue-600 dark:text-blue-400" />
             <StatCard title="Total Billed" value={formatCurrency(filteredInvoices.reduce((sum, o) => sum + (parseFloat(o.totalPrice) || 0), 0))} colorClass="text-textLight dark:text-textDark" />
             <StatCard title="Total Paid" value={formatCurrency(filteredInvoices.reduce((sum, o) => sum + (parseFloat(o.payment) || 0), 0))} colorClass="text-green-600 dark:text-green-400" />
             <StatCard title="Remaining Balance" value={formatCurrency(filteredInvoices.reduce((sum, o) => sum + (parseFloat(o.balance) || 0), 0))} colorClass="text-red-600 dark:text-red-400" />
@@ -520,7 +524,7 @@ export default function Billing({ workspaceUid }) {
                     <th className="px-5 py-2.5"></th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-borderLight dark:border-borderDark">
+                <tbody className="divide-y divide-borderLight dark:divide-borderDark">
                   {currentInvoices.length === 0 ? (
                     <tr><td colSpan="8" className="px-5 py-6 text-center text-mutedLight dark:text-mutedDark text-sm">No invoice records found.</td></tr>
                   ) : (

@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useData } from '../DataContext'; 
+import { database } from '../firebase';
+import { ref, update } from 'firebase/database';
 
 export default function SystemLogs({ workspaceUid }) {
   const { logs, isInitialLoading: isLoading } = useData();
@@ -11,8 +13,44 @@ export default function SystemLogs({ workspaceUid }) {
     setCurrentPage(1);
   }, [searchTerm]);
 
-  const formatDate = (isoString) => {
-    return new Date(isoString).toLocaleString('en-US', {
+  useEffect(() => {
+    if (!workspaceUid || !logs || logs.length === 0) return;
+
+    const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
+    const cutoffTime = Date.now() - thirtyDaysMs;
+    const oldLogsUpdates = {};
+    let hasOldLogs = false;
+
+    logs.forEach(log => {
+      const logKey = log.id || log.key;
+      if (!logKey) return;
+
+      let logTimeMs = 0;
+
+      if (typeof log.timestamp === 'number') {
+        logTimeMs = log.timestamp;
+      } else if (typeof log.timestamp === 'string') {
+        logTimeMs = new Date(log.timestamp).getTime();
+      }
+
+      if (logTimeMs > 0 && logTimeMs < cutoffTime) {
+        oldLogsUpdates[`users/${workspaceUid}/logs/${logKey}`] = null;
+        hasOldLogs = true;
+      }
+    });
+
+    if (hasOldLogs) {
+      update(ref(database), oldLogsUpdates).catch((err) => {
+        console.error("Failed to prune expired logs:", err);
+      });
+    }
+  }, [logs, workspaceUid]);
+
+  const formatDate = (rawTimestamp) => {
+    if (!rawTimestamp) return '-';
+    const parsed = new Date(rawTimestamp);
+    if (isNaN(parsed.getTime())) return String(rawTimestamp);
+    return parsed.toLocaleString('en-US', {
       year: 'numeric', month: 'short', day: 'numeric',
       hour: '2-digit', minute: '2-digit'
     });
@@ -124,7 +162,7 @@ export default function SystemLogs({ workspaceUid }) {
                   const displayUser = log.userName || 'Administrator';
 
                   return (
-                    <tr key={log.id} className="hover:bg-pageLight dark:hover:bg-pageDark transition-colors">
+                    <tr key={log.id || log.key} className="hover:bg-pageLight dark:hover:bg-pageDark transition-colors">
                       <td className="px-6 py-4 text-sm text-mutedLight dark:text-mutedDark whitespace-nowrap align-middle">{formatDate(log.timestamp)}</td>
                       <td className="px-6 py-4 text-sm whitespace-nowrap align-middle">
                         <span className={`inline-flex items-center px-2 py-1 rounded text-[11px] font-bold tracking-wide ${getActionColor(log.action)}`}>{log.action}</span>

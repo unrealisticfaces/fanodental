@@ -409,7 +409,6 @@ export default function Settings({ workspaceUid }) {
           throw new Error("Invalid backup file structure.");
         }
 
-        // Automatic Legacy Fano Lab Schema Upgrader & Deduplicator
         if (parsedData.audit_logs || (parsedData.orders && Object.values(parsedData.orders)[0]?.doctor)) {
            if (window.confirm("Legacy Fano Lab database detected! Do you want to automatically upgrade and remove duplicate RX numbers?")) {
               const migratedData = { 
@@ -421,14 +420,13 @@ export default function Settings({ workspaceUid }) {
               };
               
               if (parsedData.orders) {
-                 const rxTracker = {}; // Tracks RX numbers to prevent duplicates
+                 const rxTracker = {};
 
                  Object.keys(parsedData.orders).forEach(key => {
                      const oldOrder = parsedData.orders[key];
                      const rxNum = (oldOrder.rxNumber || '').trim();
                      const rxKey = rxNum.toLowerCase();
 
-                     // If RX Number already exists, delete the old one and keep this newer one
                      if (rxKey) {
                        if (rxTracker[rxKey]) {
                          delete migratedData.orders[rxTracker[rxKey]];
@@ -511,7 +509,6 @@ export default function Settings({ workspaceUid }) {
               parsedData = migratedData;
            }
         } else {
-           // Modern schema duplicate cleanup
            if (parsedData.orders) {
              const rxTracker = {};
              const cleanedOrders = {};
@@ -520,7 +517,6 @@ export default function Settings({ workspaceUid }) {
                const order = parsedData.orders[key];
                const rxKey = (order.rxNumber || '').trim().toLowerCase();
                
-               // Remove older duplicate if found
                if (rxKey) {
                  if (rxTracker[rxKey]) {
                     delete cleanedOrders[rxTracker[rxKey]];
@@ -588,6 +584,115 @@ export default function Settings({ workspaceUid }) {
       addToast('Database wiped successfully. You have a clean slate.', 'success');
     } catch (error) {
       addToast('Failed to wipe database.', 'error');
+    }
+  };
+
+  const handleRestoreArchive = async () => {
+    if (!workspaceUid) return;
+    if (!window.confirm("This will move all data from Cold Storage back into your main active Records. Continue?")) return;
+
+    try {
+      addToast("Scanning database...", "info");
+
+      let archiveRef = ref(database, `users/${workspaceUid}/archived_orders`);
+      let snap = await get(archiveRef);
+
+      if (!snap.exists()) {
+        archiveRef = ref(database, `users/${workspaceUid}/archieved_orders`);
+        snap = await get(archiveRef);
+      }
+
+      if (!snap.exists()) {
+        addToast("No archived orders found. Please ensure you hard refreshed the page.", "error");
+        return;
+      }
+
+      const archivedData = snap.val();
+      const keys = Object.keys(archivedData);
+      addToast(`Found ${keys.length} archived orders. Restoring now...`, "info");
+
+      const updates = {};
+      
+      keys.forEach(key => {
+        updates[`users/${workspaceUid}/orders/${key}`] = archivedData[key];
+      });
+      
+      updates[`users/${workspaceUid}/archived_orders`] = null; 
+      updates[`users/${workspaceUid}/archieved_orders`] = null; 
+
+      await update(ref(database), updates);
+      addToast("Successfully restored all archived data! Please refresh your page.", "success");
+      
+    } catch (error) {
+      console.error(error);
+      addToast(`Error restoring data: ${error.message}`, "error");
+    }
+  };
+
+  const handleGenerateLedger = async () => {
+    if (!workspaceUid) return;
+    if (!window.confirm("This will calculate all your historical data and generate the Bank Ledger. Continue?")) return;
+
+    try {
+      addToast("Calculating Bank Ledger, please wait...", "info");
+      const snap = await get(ref(database, `users/${workspaceUid}/orders`));
+      
+      if (!snap.exists()) {
+        addToast("No orders found to calculate.", "error");
+        return;
+      }
+
+      const allOrders = snap.val();
+      let gross = 0;
+      let collected = 0;
+      let active = 0;
+      let delivered = 0;
+      const products = {};
+      const daily = {};
+
+      Object.keys(allOrders).forEach(key => {
+        const order = allOrders[key];
+        const total = parseFloat(order.totalPrice) || 0;
+        const pay = parseFloat(order.payment) || 0;
+        
+        gross += total;
+        collected += pay;
+        
+        if (order.initialStatus === 'In progress') active++;
+        if (order.initialStatus === 'Delivered') delivered++;
+
+        const prod = order.product || 'Unknown';
+        
+        // 🚀 THE FIX: Remove slashes and invalid Firebase characters from product names
+        const safeProdKey = prod.replace(/[\.\#\$\/\[\]]/g, '-');
+        
+        products[safeProdKey] = (products[safeProdKey] || 0) + total;
+
+        const dateStr = order.dateReceived || (order.createdAt ? order.createdAt.split('T')[0] : null);
+        if (dateStr) {
+           const dStr = dateStr.substring(0, 10);
+           if (!daily[dStr]) daily[dStr] = { gross: 0, collected: 0 };
+           daily[dStr].gross += total;
+           daily[dStr].collected += pay;
+        }
+      });
+
+      const statsData = {
+        allTimeGross: gross,
+        allTimeCollected: collected,
+        activeJobs: active,
+        deliveredJobs: delivered,
+        productRevenue: products,
+        dailyRevenue: daily,
+        lastUpdated: new Date().toISOString()
+      };
+
+      await set(ref(database, `users/${workspaceUid}/stats`), statsData);
+      addToast("Bank Ledger generated successfully!", "success");
+      
+    } catch (error) {
+      console.error(error);
+      addToast(`Error generating ledger: ${error.message}`, "error");
     }
   };
 
@@ -944,6 +1049,38 @@ export default function Settings({ workspaceUid }) {
                     Delete All Data
                   </button>
                 </div>
+                
+                <div className="p-5 border border-blue-200 dark:border-blue-900/30 rounded bg-blue-50/50 dark:bg-blue-900/10 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center gap-3 mb-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="text-blue-500 w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 8l0 8" /><path d="M8 12l4 -4l4 4" /><path d="M3 21h18" /></svg>
+                      <h4 className="text-sm font-semibold text-blue-700 dark:text-blue-400">Restore Archive</h4>
+                    </div>
+                    <p className="text-xs text-blue-600/80 dark:text-blue-400/80 mb-4 leading-relaxed">
+                      Move all previously archived data back into the main active Records folder to restore full all-time totals.
+                    </p>
+                  </div>
+                  <button onClick={handleRestoreArchive} className="px-4 py-2 border border-blue-200 dark:border-blue-800 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-700 transition-colors shadow-sm w-full flex items-center justify-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 8l0 8" /><path d="M8 12l4 -4l4 4" /><path d="M3 21h18" /></svg>
+                    Run Restore
+                  </button>
+                </div>
+
+                <div className="p-5 border border-purple-200 dark:border-purple-900/30 rounded bg-purple-50/50 dark:bg-purple-900/10 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center gap-3 mb-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="text-purple-500 w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 21v-13l9 -4l9 4v13" /><path d="M13 13h4v8h-10v-6h6" /><path d="M13 21v-9a1 1 0 0 0 -1 -1h-2a1 1 0 0 0 -1 1v3" /></svg>
+                      <h4 className="text-sm font-semibold text-purple-700 dark:text-purple-400">Generate Bank Ledger</h4>
+                    </div>
+                    <p className="text-xs text-purple-600/80 dark:text-purple-400/80 mb-4 leading-relaxed">
+                      Step 1 of optimization: Calculates your all-time 7M totals and saves them as a lightweight file.
+                    </p>
+                  </div>
+                  <button onClick={handleGenerateLedger} className="px-4 py-2 border border-purple-200 dark:border-purple-800 bg-purple-600 text-white text-sm font-medium rounded hover:bg-purple-700 transition-colors shadow-sm w-full flex items-center justify-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M5 12l5 5l10 -10" /></svg>
+                    Generate Ledger
+                  </button>
+                </div>
 
               </div>
             </div>
@@ -952,7 +1089,6 @@ export default function Settings({ workspaceUid }) {
 
       </div>
 
-      {/* Add Staff Modal */}
       {isStaffModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
           <div className="bg-surfaceLight dark:bg-surfaceDark border border-borderLight dark:border-borderDark rounded-md shadow-xl w-full max-w-sm flex flex-col animate-in fade-in">
@@ -993,7 +1129,6 @@ export default function Settings({ workspaceUid }) {
         </div>
       )}
 
-      {/* Edit Staff Modal */}
       {isEditStaffModalOpen && editingStaff && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
           <div className="bg-surfaceLight dark:bg-surfaceDark border border-borderLight dark:border-borderDark rounded-md shadow-xl w-full max-w-sm flex flex-col animate-in fade-in">
@@ -1042,7 +1177,6 @@ export default function Settings({ workspaceUid }) {
         </div>
       )}
 
-      {/* Edit Technician Modal */}
       {isEditTechModalOpen && editingTech && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
           <div className="bg-surfaceLight dark:bg-surfaceDark border border-borderLight dark:border-borderDark rounded-md shadow-xl w-full max-w-sm flex flex-col animate-in fade-in">
