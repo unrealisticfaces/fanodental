@@ -27,7 +27,6 @@ export default function Records({ workspaceUid, userProfile }) {
   const [openDropdownId, setOpenDropdownId] = useState(null);
   const [orderToDelete, setOrderToDelete] = useState(null);
 
-  // 🚀 NEW: Deep Server Search State
   const [isDeepSearching, setIsDeepSearching] = useState(false);
   const [deepSearchResults, setDeepSearchResults] = useState(null);
 
@@ -51,7 +50,6 @@ export default function Records({ workspaceUid, userProfile }) {
     setCurrentPage(1);
   }, [debouncedSearch, productFilter, paymentFilter, deepSearchResults]);
 
-  // 🚀 NEW: Direct Server Search Logic
   const handleDeepSearch = async () => {
     if (!workspaceUid || !searchTerm.trim()) return;
     
@@ -203,7 +201,6 @@ export default function Records({ workspaceUid, userProfile }) {
       const updateData = { ...editingOrder };
       delete updateData.id;
 
-      // Ensure we have the original data even if deep searching
       const sourceList = deepSearchResults || orders;
       const originalOrder = sourceList.find(o => o.id === orderId);
       
@@ -283,7 +280,6 @@ export default function Records({ workspaceUid, userProfile }) {
       setEditingOrder(null);
       addToast("Order information updated.", "success");
       
-      // Update local deep search cache if active
       if (deepSearchResults) {
         setDeepSearchResults(prev => prev.map(o => o.id === orderId ? { ...updateData, id: orderId } : o));
       }
@@ -390,12 +386,9 @@ export default function Records({ workspaceUid, userProfile }) {
     }
   };
 
-  // 🚀 Switch between local 1000 orders or the Deep Search results
   const searchSource = deepSearchResults || orders;
 
   const filteredOrders = searchSource.filter(order => {
-    // If we are deep searching, the results are already filtered. 
-    // We only apply the debounced search to local data.
     if (!deepSearchResults) {
       const searchLower = debouncedSearch.toLowerCase();
       const matchesSearch = (order.rxNumber || '').toLowerCase().includes(searchLower) ||
@@ -463,7 +456,6 @@ export default function Records({ workspaceUid, userProfile }) {
               </select>
             </div>
             
-            {/* 🚀 NEW: Deep Search Bar Interface */}
             <div className="flex items-center gap-2 text-sm text-mutedLight dark:text-mutedDark sm:ml-4">
               <span>Search:</span>
               <div className="flex items-center gap-2">
@@ -507,7 +499,7 @@ export default function Records({ workspaceUid, userProfile }) {
             <thead>
               <tr className="bg-surfaceLight dark:bg-surfaceDark border-b border-borderLight dark:border-borderDark">
                 <th className="px-5 py-2.5 text-xs font-semibold text-mutedLight dark:text-mutedDark uppercase tracking-wider">RX No.</th>
-                <th className="px-5 py-2.5 text-xs font-semibold text-mutedLight dark:text-mutedDark uppercase tracking-wider">Product</th>
+                <th className="px-5 py-2.5 text-xs font-semibold text-mutedLight dark:text-mutedDark uppercase tracking-wider">Product & Details</th>
                 <th className="px-5 py-2.5 text-xs font-semibold text-mutedLight dark:text-mutedDark uppercase tracking-wider text-center">Units</th>
                 <th className="px-5 py-2.5 text-xs font-semibold text-mutedLight dark:text-mutedDark uppercase tracking-wider">Dentist</th>
                 <th className="px-5 py-2.5 text-xs font-semibold text-mutedLight dark:text-mutedDark uppercase tracking-wider">Technician</th>
@@ -521,7 +513,7 @@ export default function Records({ workspaceUid, userProfile }) {
                 Array(5).fill(0).map((_, i) => (
                   <tr key={i} className="animate-pulse bg-surfaceLight dark:bg-surfaceDark">
                     <td className="px-5 py-4"><div className="h-4 bg-pageLight dark:bg-pageDark rounded w-16"></div></td>
-                    <td className="px-5 py-4"><div className="h-4 bg-pageLight dark:bg-pageDark rounded w-24"></div></td>
+                    <td className="px-5 py-4"><div className="h-4 bg-pageLight dark:bg-pageDark rounded w-24 mb-1"></div><div className="h-3 bg-pageLight dark:bg-pageDark rounded w-32"></div></td>
                     <td className="px-5 py-4"><div className="h-4 bg-pageLight dark:bg-pageDark rounded w-10 mx-auto"></div></td>
                     <td className="px-5 py-4"><div className="h-4 bg-pageLight dark:bg-pageDark rounded w-32"></div></td>
                     <td className="px-5 py-4"><div className="h-4 bg-pageLight dark:bg-pageDark rounded w-24"></div></td>
@@ -540,7 +532,14 @@ export default function Records({ workspaceUid, userProfile }) {
                 currentOrders.map((order) => (
                   <tr key={order.id} className="hover:bg-pageLight dark:hover:bg-pageDark transition-colors">
                     <td className="px-5 py-3 text-sm text-mutedLight dark:text-mutedDark whitespace-nowrap">{order.rxNumber}</td>
-                    <td className="px-5 py-3 text-sm text-textLight dark:text-textDark whitespace-nowrap font-medium">{order.product}</td>
+                    <td className="px-5 py-3">
+                      <span className="text-sm text-textLight dark:text-textDark font-medium block">{order.product}</span>
+                      {order.descriptions && (
+                        <span className="text-[11px] text-mutedLight dark:text-mutedDark block mt-0.5 truncate max-w-[200px]" title={order.descriptions}>
+                          Desc: {order.descriptions}
+                        </span>
+                      )}
+                    </td>
                     <td className="px-5 py-3 text-sm text-mutedLight dark:text-mutedDark whitespace-nowrap text-center">{order.units || '-'}</td>
                     <td className="px-5 py-3 text-sm text-textLight dark:text-textDark whitespace-nowrap">{order.dentistName}</td>
                     <td className="px-5 py-3 text-sm text-textLight dark:text-textDark whitespace-nowrap">{order.techIncharge || 'Unassigned'}</td>
@@ -672,7 +671,9 @@ export default function Records({ workspaceUid, userProfile }) {
                   <div className="space-y-3">
                     <div><span className="text-xs text-mutedLight dark:text-mutedDark block">Pick up By</span><p className="font-medium text-sm text-textLight dark:text-textDark">{selectedOrder.pickUpBy || '-'}</p></div>
                     <div><span className="text-xs text-mutedLight dark:text-mutedDark block">Deliver By</span><p className="font-medium text-sm text-textLight dark:text-textDark">{selectedOrder.deliverBy || '-'}</p></div>
-                    <div><span className="text-xs text-mutedLight dark:text-mutedDark block">Instructions / Remarks</span><p className="font-medium text-sm text-textLight dark:text-textDark">{selectedOrder.descriptions || selectedOrder.remarks || 'None'}</p></div>
+                    {/* 🚀 THE FIX: Descriptions and Remarks are now separate */}
+                    <div><span className="text-xs text-mutedLight dark:text-mutedDark block">Description</span><p className="font-medium text-sm text-textLight dark:text-textDark">{selectedOrder.descriptions || '-'}</p></div>
+                    <div><span className="text-xs text-mutedLight dark:text-mutedDark block">Remarks</span><p className="font-medium text-sm text-textLight dark:text-textDark">{selectedOrder.remarks || '-'}</p></div>
                   </div>
                 </div>
               </div>
