@@ -1,41 +1,47 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useToast } from '../ToastContext';
 import { useData } from '../DataContext';
 
 export default function Billing({ workspaceUid }) {
   const { addToast } = useToast();
-  // Read stats from DataContext so Total Gross Revenue reflects the all-time 7M
   const { orders, payments: transactions, labSettings, stats, isInitialLoading: isLoading } = useData();
+  
   const [activeTab, setActiveTab] = useState('sales');
   
   const allOrders = orders || [];
+  const allTransactions = transactions || [];
   
   const dentists = [...new Set(allOrders.map(o => o.dentistName?.trim()).filter(Boolean))].sort();
   
+  // Sales Tab States
   const [invoiceSearch, setInvoiceSearch] = useState('');
   const [invoiceDateFilter, setInvoiceDateFilter] = useState('All');
   const [invoiceCustomDate, setInvoiceCustomDate] = useState('');
   const [invoiceCustomMonth, setInvoiceCustomMonth] = useState('');
   const [paymentStatusFilter, setPaymentStatusFilter] = useState('All');
+  const [invoicesPage, setInvoicesPage] = useState(1);
+  const itemsPerPage = 10;
   
+  // Customers Tab States
   const [customerSearch, setCustomerSearch] = useState('');
-  
+  const [customersPage, setCustomersPage] = useState(1);
+  const [showSOAPreview, setShowSOAPreview] = useState(false);
+  const [soaPrintData, setSoaPrintData] = useState(null);
+
+  // Reports Tab States
   const [reportType, setReportType] = useState('summary_pdf');
   const [reportTimeframe, setReportTimeframe] = useState('This Month');
   const [reportDateFrom, setReportDateFrom] = useState('');
   const [reportDateTo, setReportDateTo] = useState('');
 
-  const [showSOAPreview, setShowSOAPreview] = useState(false);
+  // Modals & Popups
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
-  const [soaPrintData, setSoaPrintData] = useState(null);
-
-  const [invoicesPage, setInvoicesPage] = useState(1);
-  const [customersPage, setCustomersPage] = useState(1);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [selectedHistoryOrder, setSelectedHistoryOrder] = useState(null);
   const [openDropdownId, setOpenDropdownId] = useState(null);
-  
-  const itemsPerPage = 10;
+
+  // Monthly Tracker State
+  const [expandedMonth, setExpandedMonth] = useState(null);
 
   useEffect(() => {
     const handleClickOutside = () => setOpenDropdownId(null);
@@ -46,6 +52,57 @@ export default function Billing({ workspaceUid }) {
   useEffect(() => { setInvoicesPage(1); }, [invoiceSearch, invoiceDateFilter, invoiceCustomDate, invoiceCustomMonth, paymentStatusFilter]);
   useEffect(() => { setCustomersPage(1); }, [customerSearch]);
 
+  const formatCurrency = (value) => new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(value || 0);
+  const formatDateTime = (isoStr) => new Date(isoStr).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  const formatShortDate = (isoStr) => new Date(isoStr).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+
+  // --------------------------------------------------------
+  // MONTHLY TRACKER & CASH FLOW LOGIC
+  // --------------------------------------------------------
+  const today = new Date();
+  const currentMonthPrefix = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+  
+  const actualCashThisMonth = allTransactions.reduce((sum, t) => {
+    if (t.timestamp && t.timestamp.startsWith(currentMonthPrefix)) {
+      return sum + (parseFloat(t.amount) || 0);
+    }
+    return sum;
+  }, 0);
+
+  const monthlyData = {};
+  allOrders.forEach(o => {
+    const d = o.dateReceived || o.createdAt || '';
+    if (!d) return;
+    const m = d.substring(0, 7); 
+    
+    if (!monthlyData[m]) {
+      const [year, month] = m.split('-');
+      const dateObj = new Date(year, month - 1, 1);
+      const monthName = dateObj.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+      monthlyData[m] = { monthCode: m, monthName: monthName, billed: 0, paid: 0, balance: 0, unpaidOrders: [] };
+    }
+    
+    const total = parseFloat(o.totalPrice) || 0;
+    const pay = parseFloat(o.payment) || 0;
+    const bal = Math.max(0, total - pay);
+    
+    monthlyData[m].billed += total;
+    monthlyData[m].paid += pay;
+    monthlyData[m].balance += bal;
+    
+    if (bal > 0) {
+      monthlyData[m].unpaidOrders.push(o);
+    }
+  });
+
+  // 🚀 THE FIX: Changed from descending (b vs a) to ascending (a vs b)
+  // This puts January at the top and September at the bottom in proper chronological order
+  const sortedMonths = Object.values(monthlyData).sort((a, b) => a.monthCode.localeCompare(b.monthCode));
+  const currentMonthBilled = monthlyData[currentMonthPrefix]?.billed || 0;
+
+  // --------------------------------------------------------
+  // SALES TAB LOGIC
+  // --------------------------------------------------------
   const filteredInvoices = allOrders.filter(o => {
     const searchLower = invoiceSearch.toLowerCase();
     const matchesSearch = (o.dentistName || '').toLowerCase().includes(searchLower) ||
@@ -86,15 +143,19 @@ export default function Billing({ workspaceUid }) {
     return true;
   });
 
+  const totalInvoicesPages = Math.ceil(filteredInvoices.length / itemsPerPage);
+  const currentInvoices = filteredInvoices.slice((invoicesPage - 1) * itemsPerPage, invoicesPage * itemsPerPage);
+
+  // --------------------------------------------------------
+  // CUSTOMERS & SOA LOGIC
+  // --------------------------------------------------------
   const customerStats = dentists.map(dentist => {
     const dentistOrders = allOrders.filter(o => o.dentistName?.trim() === dentist);
     const totalOrders = dentistOrders.length;
     const gross = dentistOrders.reduce((sum, o) => sum + (parseFloat(o.totalPrice) || 0), 0);
     const paid = dentistOrders.reduce((sum, o) => sum + (parseFloat(o.payment) || 0), 0);
     const balance = dentistOrders.reduce((sum, o) => sum + (parseFloat(o.balance) || 0), 0);
-    
     const allRxs = dentistOrders.map(o => o.rxNumber).filter(Boolean);
-
     return { name: dentist, totalOrders, gross, paid, balance, orders: dentistOrders, allRxs };
   });
 
@@ -104,9 +165,8 @@ export default function Billing({ workspaceUid }) {
     return c.orders.some(o => (o.rxNumber || '').toLowerCase().includes(searchLower));
   });
 
-  const formatCurrency = (value) => new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(value);
-  const formatDateTime = (isoStr) => new Date(isoStr).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-  const formatShortDate = (isoStr) => new Date(isoStr).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  const totalCustomersPages = Math.ceil(filteredCustomers.length / itemsPerPage);
+  const currentCustomers = filteredCustomers.slice((customersPage - 1) * itemsPerPage, customersPage * itemsPerPage);
 
   const handleOpenSOA = (customer) => {
     const activeBillingRecords = customer.orders.filter(o => 
@@ -118,17 +178,8 @@ export default function Billing({ workspaceUid }) {
       return;
     }
 
-    setSoaPrintData({
-      dentistName: customer.name,
-      records: activeBillingRecords,
-      totalOutstanding: customer.balance
-    });
+    setSoaPrintData({ dentistName: customer.name, records: activeBillingRecords, totalOutstanding: customer.balance });
     setShowSOAPreview(true);
-  };
-
-  const handleViewDetailsClick = (order) => {
-    setSelectedOrder(order);
-    setIsViewModalOpen(true);
   };
 
   const getSOAHTML = () => {
@@ -199,10 +250,7 @@ export default function Billing({ workspaceUid }) {
   const handlePrintHidden = () => {
     const htmlContent = getSOAHTML();
     const iframe = document.createElement('iframe');
-    iframe.style.position = 'absolute';
-    iframe.style.width = '0px';
-    iframe.style.height = '0px';
-    iframe.style.border = 'none';
+    iframe.style.position = 'absolute'; iframe.style.width = '0px'; iframe.style.height = '0px'; iframe.style.border = 'none';
     document.body.appendChild(iframe);
     const doc = iframe.contentWindow.document;
     doc.open(); doc.write(htmlContent); doc.close();
@@ -428,11 +476,10 @@ export default function Billing({ workspaceUid }) {
     }
   };
 
-  const totalInvoicesPages = Math.ceil(filteredInvoices.length / itemsPerPage);
-  const currentInvoices = filteredInvoices.slice((invoicesPage - 1) * itemsPerPage, invoicesPage * itemsPerPage);
-
-  const totalCustomersPages = Math.ceil(filteredCustomers.length / itemsPerPage);
-  const currentCustomers = filteredCustomers.slice((customersPage - 1) * itemsPerPage, customersPage * itemsPerPage);
+  const handleViewDetailsClick = (order) => {
+    setSelectedOrder(order);
+    setIsViewModalOpen(true);
+  };
 
   const StatCard = ({ title, value, colorClass }) => (
     <div className="bg-surfaceLight dark:bg-surfaceDark border border-borderLight dark:border-borderDark rounded-md shadow-sm p-4 flex flex-col transition-colors duration-200">
@@ -453,25 +500,137 @@ export default function Billing({ workspaceUid }) {
 
       <div className="bg-surfaceLight dark:bg-surfaceDark border border-borderLight dark:border-borderDark rounded-md shadow-sm p-2 flex gap-1 overflow-x-auto">
         <button onClick={() => setActiveTab('sales')} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${activeTab === 'sales' ? 'bg-primary/10 text-primary dark:text-blue-400' : 'text-mutedLight dark:text-mutedDark hover:text-textLight dark:hover:text-textDark hover:bg-pageLight dark:hover:bg-pageDark'}`}>
-          Sales
+          Sales Records
+        </button>
+        <button onClick={() => setActiveTab('monthly')} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${activeTab === 'monthly' ? 'bg-primary/10 text-primary dark:text-blue-400' : 'text-mutedLight dark:text-mutedDark hover:text-textLight dark:hover:text-textDark hover:bg-pageLight dark:hover:bg-pageDark'}`}>
+          Monthly Tracker
         </button>
         <button onClick={() => setActiveTab('customers')} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${activeTab === 'customers' ? 'bg-primary/10 text-primary dark:text-blue-400' : 'text-mutedLight dark:text-mutedDark hover:text-textLight dark:hover:text-textDark hover:bg-pageLight dark:hover:bg-pageDark'}`}>
           Statement of Account
         </button>
         <button onClick={() => setActiveTab('reports')} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${activeTab === 'reports' ? 'bg-primary/10 text-primary dark:text-blue-400' : 'text-mutedLight dark:text-mutedDark hover:text-textLight dark:hover:text-textDark hover:bg-pageLight dark:hover:bg-pageDark'}`}>
-          Reports
+          Reports Center
         </button>
       </div>
 
+      {activeTab === 'monthly' && (
+        <div className="space-y-6 animate-in fade-in">
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div className="bg-surfaceLight dark:bg-surfaceDark border border-borderLight dark:border-borderDark rounded-md shadow-sm p-5">
+              <h3 className="text-[11px] font-bold text-mutedLight dark:text-mutedDark uppercase tracking-wider mb-1">New Billings (Earned This Month)</h3>
+              <p className="text-2xl font-bold text-textLight dark:text-textDark">{formatCurrency(currentMonthBilled)}</p>
+              <p className="text-xs text-mutedLight dark:text-mutedDark mt-2">Total gross of all orders created in {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}.</p>
+            </div>
+            <div className="bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-200 dark:border-emerald-800/30 rounded-md shadow-sm p-5 relative overflow-hidden">
+              <h3 className="text-[11px] font-bold text-emerald-800 dark:text-emerald-400 uppercase tracking-wider mb-1">Actual Cash Received This Month</h3>
+              <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{formatCurrency(actualCashThisMonth)}</p>
+              <p className="text-xs text-emerald-700 dark:text-emerald-500 mt-2">Physical cash collected this month, including payments for past bills.</p>
+            </div>
+          </div>
+
+          <div className="bg-surfaceLight dark:bg-surfaceDark border border-borderLight dark:border-borderDark rounded-md shadow-sm flex flex-col overflow-visible">
+            <div className="px-5 py-4 border-b border-borderLight dark:border-borderDark">
+              <h3 className="text-base font-semibold text-textLight dark:text-textDark">Monthly Clearance Tracker</h3>
+              <p className="text-sm text-mutedLight dark:text-mutedDark mt-0.5">Track which billing months are fully paid off and which ones still have pending balances.</p>
+            </div>
+            <div className="overflow-visible min-h-[400px]">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-pageLight/50 dark:bg-pageDark/50 border-b border-borderLight dark:border-borderDark">
+                    <th className="px-5 py-3 text-xs font-semibold text-mutedLight dark:text-mutedDark uppercase tracking-wider">Billing Month</th>
+                    <th className="px-5 py-3 text-xs font-semibold text-mutedLight dark:text-mutedDark uppercase tracking-wider text-right">Total Billed</th>
+                    <th className="px-5 py-3 text-xs font-semibold text-mutedLight dark:text-mutedDark uppercase tracking-wider text-right">Paid Against Bills</th>
+                    <th className="px-5 py-3 text-xs font-semibold text-mutedLight dark:text-mutedDark uppercase tracking-wider text-right">Remaining Balance</th>
+                    <th className="px-5 py-3 text-xs font-semibold text-mutedLight dark:text-mutedDark uppercase tracking-wider text-center">Clearance Status</th>
+                    <th className="px-5 py-3 text-right"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-borderLight dark:border-borderDark">
+                  {sortedMonths.length === 0 ? (
+                    <tr><td colSpan="6" className="px-5 py-8 text-center text-mutedLight dark:text-mutedDark text-sm">No monthly records found.</td></tr>
+                  ) : (
+                    sortedMonths.map((m) => (
+                      <React.Fragment key={m.monthCode}>
+                        <tr className={`hover:bg-pageLight dark:hover:bg-pageDark transition-colors ${expandedMonth === m.monthCode ? 'bg-pageLight/50 dark:bg-pageDark/50' : ''}`}>
+                          <td className="px-5 py-4 text-sm font-bold text-textLight dark:text-textDark whitespace-nowrap">{m.monthName}</td>
+                          <td className="px-5 py-4 text-sm text-right text-mutedLight dark:text-mutedDark">{formatCurrency(m.billed)}</td>
+                          <td className="px-5 py-4 text-sm text-right text-green-600 dark:text-green-400 font-medium">{formatCurrency(m.paid)}</td>
+                          <td className="px-5 py-4 text-sm text-right font-bold text-red-600 dark:text-red-400">{formatCurrency(m.balance)}</td>
+                          <td className="px-5 py-4 text-sm text-center">
+                            {m.balance <= 0 && m.billed > 0 ? (
+                              <span className="inline-flex items-center px-2.5 py-1 rounded text-[11px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 mr-1" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+                                Cleared
+                              </span>
+                            ) : m.billed === 0 ? (
+                              <span className="inline-flex items-center px-2.5 py-1 rounded text-[11px] font-bold uppercase tracking-wider bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400">Empty</span>
+                            ) : (
+                              <span className="inline-flex items-center px-2.5 py-1 rounded text-[11px] font-bold uppercase tracking-wider bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">Pending Balance</span>
+                            )}
+                          </td>
+                          <td className="px-5 py-4 text-right">
+                            {m.balance > 0 && (
+                              <button 
+                                onClick={() => setExpandedMonth(expandedMonth === m.monthCode ? null : m.monthCode)}
+                                className="text-sm font-medium text-primary hover:text-primaryHover underline"
+                              >
+                                {expandedMonth === m.monthCode ? 'Hide Pending' : 'View Pending'}
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                        {expandedMonth === m.monthCode && m.unpaidOrders.length > 0 && (
+                          <tr className="bg-gray-50/50 dark:bg-[#111824]">
+                            <td colSpan="6" className="p-0 border-b-2 border-primary/20">
+                              <div className="p-4 pl-12 bg-indigo-50/30 dark:bg-indigo-900/5">
+                                <h4 className="text-xs font-bold uppercase text-mutedLight dark:text-mutedDark mb-3 flex items-center gap-2">
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-amber-500" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
+                                  Unpaid Orders from {m.monthName}
+                                </h4>
+                                <table className="w-full text-sm text-left">
+                                  <thead>
+                                    <tr className="border-b border-gray-200 dark:border-gray-700">
+                                      <th className="py-2 text-xs text-mutedLight dark:text-mutedDark font-medium">RX No.</th>
+                                      <th className="py-2 text-xs text-mutedLight dark:text-mutedDark font-medium">Dentist</th>
+                                      <th className="py-2 text-xs text-mutedLight dark:text-mutedDark font-medium">Product</th>
+                                      <th className="py-2 text-xs text-mutedLight dark:text-mutedDark font-medium text-right">Owed Balance</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {m.unpaidOrders.map(uo => (
+                                      <tr key={uo.id} className="border-b border-gray-100 dark:border-gray-800 last:border-0">
+                                        <td className="py-2 font-medium text-textLight dark:text-textDark">{uo.rxNumber}</td>
+                                        <td className="py-2 text-mutedLight dark:text-mutedDark">Dr. {uo.dentistName}</td>
+                                        <td className="py-2 text-mutedLight dark:text-mutedDark">{uo.product}</td>
+                                        <td className="py-2 text-right font-bold text-red-600 dark:text-red-400">{formatCurrency(uo.balance)}</td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* SALES TAB */}
       {activeTab === 'sales' && (
         <div className="space-y-6 animate-in fade-in">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-            {/* Reads directly from Bank Ledger (stats) so it matches the Dashboard's 7M */}
-            <StatCard title="Total Gross Revenue" value={formatCurrency(stats?.allTimeGross || 0)} colorClass="text-blue-600 dark:text-blue-400" />
-            <StatCard title="Total Billed" value={formatCurrency(filteredInvoices.reduce((sum, o) => sum + (parseFloat(o.totalPrice) || 0), 0))} colorClass="text-textLight dark:text-textDark" />
-            <StatCard title="Total Paid" value={formatCurrency(filteredInvoices.reduce((sum, o) => sum + (parseFloat(o.payment) || 0), 0))} colorClass="text-green-600 dark:text-green-400" />
-            <StatCard title="Remaining Balance" value={formatCurrency(filteredInvoices.reduce((sum, o) => sum + (parseFloat(o.balance) || 0), 0))} colorClass="text-red-600 dark:text-red-400" />
-            <StatCard title="Unpaid Orders" value={filteredInvoices.filter(o => o.payType !== 'Fully Paid').length} colorClass="text-amber-600 dark:text-amber-400" />
+            <StatCard title="All-Time Gross Revenue" value={formatCurrency(stats?.allTimeGross || 0)} colorClass="text-blue-600 dark:text-blue-400" />
+            <StatCard title="Searched Total Billed" value={formatCurrency(filteredInvoices.reduce((sum, o) => sum + (parseFloat(o.totalPrice) || 0), 0))} colorClass="text-textLight dark:text-textDark" />
+            <StatCard title="Searched Total Paid" value={formatCurrency(filteredInvoices.reduce((sum, o) => sum + (parseFloat(o.payment) || 0), 0))} colorClass="text-green-600 dark:text-green-400" />
+            <StatCard title="Searched Balance" value={formatCurrency(filteredInvoices.reduce((sum, o) => sum + (parseFloat(o.balance) || 0), 0))} colorClass="text-red-600 dark:text-red-400" />
+            <StatCard title="Searched Unpaid Orders" value={filteredInvoices.filter(o => o.payType !== 'Fully Paid').length} colorClass="text-amber-600 dark:text-amber-400" />
           </div>
 
           <div className="bg-surfaceLight dark:bg-surfaceDark border border-borderLight dark:border-borderDark rounded-md shadow-sm overflow-visible flex flex-col transition-colors duration-200">
@@ -524,7 +683,7 @@ export default function Billing({ workspaceUid }) {
                     <th className="px-5 py-2.5"></th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-borderLight dark:divide-borderDark">
+                <tbody className="divide-y divide-borderLight dark:border-borderDark">
                   {currentInvoices.length === 0 ? (
                     <tr><td colSpan="8" className="px-5 py-6 text-center text-mutedLight dark:text-mutedDark text-sm">No invoice records found.</td></tr>
                   ) : (
@@ -588,6 +747,7 @@ export default function Billing({ workspaceUid }) {
         </div>
       )}
 
+      {/* CUSTOMERS & SOA TAB */}
       {activeTab === 'customers' && (
         <div className="animate-in fade-in space-y-6">
           <div className="bg-surfaceLight dark:bg-surfaceDark border border-borderLight dark:border-borderDark rounded-md shadow-sm overflow-visible flex flex-col transition-colors duration-200">
@@ -681,6 +841,7 @@ export default function Billing({ workspaceUid }) {
         </div>
       )}
 
+      {/* REPORTS TAB */}
       {activeTab === 'reports' && (
         <div className="animate-in fade-in space-y-6">
           <div className="bg-surfaceLight dark:bg-surfaceDark border border-borderLight dark:border-borderDark rounded-md shadow-sm overflow-visible p-8 max-w-3xl mx-auto mt-8 flex flex-col transition-colors duration-200">
@@ -697,15 +858,15 @@ export default function Billing({ workspaceUid }) {
             <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className={labelClass}>Select Report Format</label>
-                  <select value={reportType} onChange={(e) => setReportType(e.target.value)} className={inputClass}>
+                  <label className="block text-sm font-medium text-textLight dark:text-textDark mb-1.5">Select Report Format</label>
+                  <select value={reportType} onChange={(e) => setReportType(e.target.value)} className="block w-full px-3 py-2 text-sm bg-white dark:bg-[#182433] border border-gray-300 dark:border-[#3a4859] rounded-md text-gray-900 dark:text-white focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-colors shadow-sm">
                     <option value="summary_pdf">Printable Summary Report (PDF)</option>
                     <option value="summary_csv">Raw Summary Data (CSV)</option>
                   </select>
                 </div>
                 <div>
-                  <label className={labelClass}>Select Timeframe</label>
-                  <select value={reportTimeframe} onChange={(e) => setReportTimeframe(e.target.value)} className={inputClass}>
+                  <label className="block text-sm font-medium text-textLight dark:text-textDark mb-1.5">Select Timeframe</label>
+                  <select value={reportTimeframe} onChange={(e) => setReportTimeframe(e.target.value)} className="block w-full px-3 py-2 text-sm bg-white dark:bg-[#182433] border border-gray-300 dark:border-[#3a4859] rounded-md text-gray-900 dark:text-white focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-colors shadow-sm">
                     <option value="All Time">All Time</option>
                     <option value="Today">Today</option>
                     <option value="This Week">This Week</option>
@@ -719,12 +880,12 @@ export default function Billing({ workspaceUid }) {
               {reportTimeframe === 'Custom Date Range' && (
                 <div className="grid grid-cols-2 gap-4 p-4 bg-pageLight/50 dark:bg-pageDark/50 rounded border border-borderLight dark:border-borderDark animate-in fade-in">
                   <div>
-                    <label className={labelClass}>From Date <span className="text-mutedLight dark:text-mutedDark font-normal text-xs ml-1">(Optional)</span></label>
-                    <input type="date" value={reportDateFrom} onChange={(e) => setReportDateFrom(e.target.value)} className={inputClass} />
+                    <label className="block text-sm font-medium text-textLight dark:text-textDark mb-1.5">From Date</label>
+                    <input type="date" value={reportDateFrom} onChange={(e) => setReportDateFrom(e.target.value)} className="block w-full px-3 py-2 text-sm bg-white dark:bg-[#182433] border border-gray-300 dark:border-[#3a4859] rounded-md text-gray-900 dark:text-white focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-colors shadow-sm" />
                   </div>
                   <div>
-                    <label className={labelClass}>To Date <span className="text-mutedLight dark:text-mutedDark font-normal text-xs ml-1">(Optional)</span></label>
-                    <input type="date" value={reportDateTo} onChange={(e) => setReportDateTo(e.target.value)} className={inputClass} />
+                    <label className="block text-sm font-medium text-textLight dark:text-textDark mb-1.5">To Date</label>
+                    <input type="date" value={reportDateTo} onChange={(e) => setReportDateTo(e.target.value)} className="block w-full px-3 py-2 text-sm bg-white dark:bg-[#182433] border border-gray-300 dark:border-[#3a4859] rounded-md text-gray-900 dark:text-white focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-colors shadow-sm" />
                   </div>
                 </div>
               )}
@@ -740,6 +901,7 @@ export default function Billing({ workspaceUid }) {
         </div>
       )}
 
+      {/* VIEW MODALS */}
       {isViewModalOpen && selectedOrder && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
           <div className="bg-surfaceLight dark:bg-surfaceDark border border-borderLight dark:border-borderDark rounded-md shadow-xl w-full max-w-3xl flex flex-col max-h-[90vh] animate-in fade-in">
@@ -795,7 +957,8 @@ export default function Billing({ workspaceUid }) {
                   <div className="space-y-3">
                     <div><span className="text-xs text-mutedLight dark:text-mutedDark block">Pick up By</span><p className="font-medium text-sm text-textLight dark:text-textDark">{selectedOrder.pickUpBy || '-'}</p></div>
                     <div><span className="text-xs text-mutedLight dark:text-mutedDark block">Deliver By</span><p className="font-medium text-sm text-textLight dark:text-textDark">{selectedOrder.deliverBy || '-'}</p></div>
-                    <div><span className="text-xs text-mutedLight dark:text-mutedDark block">Instructions / Remarks</span><p className="font-medium text-sm text-textLight dark:text-textDark">{selectedOrder.descriptions || selectedOrder.remarks || 'None'}</p></div>
+                    <div><span className="text-xs text-mutedLight dark:text-mutedDark block">Description</span><p className="font-medium text-sm text-textLight dark:text-textDark">{selectedOrder.descriptions || '-'}</p></div>
+                    <div><span className="text-xs text-mutedLight dark:text-mutedDark block">Remarks</span><p className="font-medium text-sm text-textLight dark:text-textDark">{selectedOrder.remarks || '-'}</p></div>
                   </div>
                 </div>
               </div>
