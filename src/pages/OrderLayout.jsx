@@ -21,8 +21,8 @@ export default function OrderLayout({ workspaceUid, userProfile }) {
 
   if (!canCreate) {
     return (
-      <div className="max-w-4xl mx-auto mt-8">
-        <div className="bg-surfaceLight dark:bg-surfaceDark border border-borderLight dark:border-borderDark rounded-md shadow-sm p-10 text-center flex flex-col items-center justify-center">
+      <div className="max-w-4xl mx-auto mt-8 px-4">
+        <div className="bg-surfaceLight dark:bg-surfaceDark border border-borderLight dark:border-borderDark rounded-md shadow-sm p-6 sm:p-10 text-center flex flex-col items-center justify-center">
           <div className="w-16 h-16 bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 rounded-full flex items-center justify-center mb-4">
             <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
           </div>
@@ -134,7 +134,6 @@ export default function OrderLayout({ workspaceUid, userProfile }) {
         });
       }
 
-      // 🚀 THE FIX: Instantly add this new order's money to the Bank Ledger
       await runTransaction(ref(database, `users/${workspaceUid}/stats`), (stats) => {
         if (stats) {
           const total = parseFloat(formData.totalPrice) || 0;
@@ -189,12 +188,12 @@ export default function OrderLayout({ workspaceUid, userProfile }) {
     }
   };
 
-  const inputClass = "block w-full px-2.5 py-1.5 text-sm bg-white dark:bg-[#182433] border border-gray-300 dark:border-[#3a4859] rounded text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-colors shadow-sm";
-  const readOnlyInputClass = "block w-full px-2.5 py-1.5 text-sm bg-gray-50 dark:bg-[#111824] border border-gray-200 dark:border-[#2b3644] rounded text-gray-500 dark:text-gray-400 cursor-not-allowed focus:outline-none shadow-sm";
+  const inputClass = "block w-full px-3 py-2 text-sm bg-white dark:bg-[#182433] border border-gray-300 dark:border-[#3a4859] rounded text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-colors shadow-sm";
+  const readOnlyInputClass = "block w-full px-3 py-2 text-sm bg-gray-50 dark:bg-[#111824] border border-gray-200 dark:border-[#2b3644] rounded text-gray-500 dark:text-gray-400 cursor-not-allowed focus:outline-none shadow-sm font-medium";
   const stepLabels = ['General Information', 'Technical Specs', 'Logistics', 'Billing'];
 
   const Label = ({ title, required = true }) => (
-    <label className="block text-sm font-medium text-textLight dark:text-textDark mb-1">
+    <label className="block text-sm font-medium text-textLight dark:text-textDark mb-1.5">
       {title} {required ? <span className="text-red-500">*</span> : <span className="font-normal text-mutedLight dark:text-mutedDark text-xs ml-1">(Optional)</span>}
     </label>
   );
@@ -203,28 +202,28 @@ export default function OrderLayout({ workspaceUid, userProfile }) {
     <div className="max-w-4xl mx-auto">
       <div className="bg-surfaceLight dark:bg-surfaceDark border border-borderLight dark:border-borderDark rounded-md shadow-sm flex flex-col transition-colors duration-200">
         
-        <div className="px-5 py-3.5 border-b border-borderLight dark:border-borderDark">
+        <div className="px-4 sm:px-5 py-3.5 border-b border-borderLight dark:border-borderDark">
           <h2 className="text-base font-semibold text-textLight dark:text-textDark">Create New Order</h2>
         </div>
 
-        <div className="px-5 py-3 border-b border-borderLight dark:border-borderDark bg-pageLight/50 dark:bg-pageDark/50">
+        <div className="px-2 sm:px-5 py-3 border-b border-borderLight dark:border-borderDark bg-pageLight/50 dark:bg-pageDark/50">
           <div className="flex items-center justify-between w-full">
             {[1, 2, 3, 4].map((i) => (
               <div key={i} className="flex-1 flex flex-col items-center relative">
-                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold z-10 transition-colors duration-200 ${
+                <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-bold z-10 transition-colors duration-200 ${
                   step >= i 
                     ? 'bg-primary text-white shadow-sm' 
                     : 'bg-surfaceLight dark:bg-surfaceDark text-mutedLight dark:text-mutedDark border border-borderLight dark:border-borderDark'
                 }`}>
                   {i}
                 </div>
-                <div className={`mt-1.5 text-xs font-medium hidden sm:block ${
+                <div className={`mt-1.5 text-[10px] sm:text-xs font-medium hidden sm:block ${
                   step >= i ? 'text-textLight dark:text-textDark' : 'text-mutedLight dark:text-mutedDark'
                 }`}>
                   {stepLabels[i-1]}
                 </div>
                 {i !== 4 && (
-                  <div className={`absolute top-3 left-[50%] w-full h-[2px] -z-0 transition-colors duration-200 ${
+                  <div className={`absolute top-3 sm:top-4 left-[50%] w-full h-[2px] -z-0 transition-colors duration-200 ${
                     step > i ? 'bg-primary' : 'bg-borderLight dark:bg-borderDark'
                   }`} />
                 )}
@@ -234,14 +233,14 @@ export default function OrderLayout({ workspaceUid, userProfile }) {
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col">
-          <div className="p-5 min-h-[320px]">
+          <div className="p-4 sm:p-5 min-h-[320px]">
             {step === 1 && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in">
                 <div><Label title="Date Received" /><input type="date" name="dateReceived" value={formData.dateReceived} onChange={handleChange} className={inputClass} /></div>
                 <div><Label title="Due Date" /><input type="date" name="dueDate" value={formData.dueDate} onChange={handleChange} className={inputClass} /></div>
-                <div><Label title="RX No." /><input type="text" name="rxNumber" value={formData.rxNumber} onChange={handleChange} className={inputClass} /></div>
-                <div><Label title="Dentist Name" /><input type="text" name="dentistName" value={formData.dentistName} onChange={handleChange} className={inputClass} /></div>
-                <div className="md:col-span-2"><Label title="Patient Name" /><input type="text" name="patientName" value={formData.patientName} onChange={handleChange} className={inputClass} /></div>
+                <div><Label title="RX No." /><input type="text" name="rxNumber" value={formData.rxNumber} onChange={handleChange} className={inputClass} placeholder="e.g. RX-1002" /></div>
+                <div><Label title="Dentist Name" /><input type="text" name="dentistName" value={formData.dentistName} onChange={handleChange} className={inputClass} placeholder="e.g. Smith" /></div>
+                <div className="md:col-span-2"><Label title="Patient Name" /><input type="text" name="patientName" value={formData.patientName} onChange={handleChange} className={inputClass} placeholder="e.g. John Doe" /></div>
               </div>
             )}
 
@@ -263,8 +262,8 @@ export default function OrderLayout({ workspaceUid, userProfile }) {
                     <option value="Clear/Essex Retainer">Clear/Essex Retainer</option>
                   </select>
                 </div>
-                <div><Label title="Units (pcs)" /><input type="number" name="units" value={formData.units} onChange={handleChange} className={inputClass} /></div>
-                <div><Label title="Shade" /><input type="text" name="shade" value={formData.shade} onChange={handleChange} className={inputClass} /></div>
+                <div><Label title="Units (pcs)" /><input type="number" name="units" value={formData.units} onChange={handleChange} className={inputClass} placeholder="1" /></div>
+                <div><Label title="Shade" /><input type="text" name="shade" value={formData.shade} onChange={handleChange} className={inputClass} placeholder="e.g. A2" /></div>
                 <div>
                   <Label title="Tech Incharge" />
                   <select name="techIncharge" value={formData.techIncharge} onChange={handleChange} className={inputClass}>
@@ -274,14 +273,14 @@ export default function OrderLayout({ workspaceUid, userProfile }) {
                     ))}
                   </select>
                 </div>
-                <div className="md:col-span-2"><Label title="Descriptions" required={false} /><textarea name="descriptions" value={formData.descriptions} onChange={handleChange} className={`h-20 resize-none ${inputClass}`} /></div>
+                <div className="md:col-span-2"><Label title="Descriptions" required={false} /><textarea name="descriptions" value={formData.descriptions} onChange={handleChange} className={`h-24 resize-none ${inputClass}`} placeholder="Any special instructions for the lab..." /></div>
               </div>
             )}
 
             {step === 3 && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in">
-                <div><Label title="Pick Up By" /><input type="text" name="pickUpBy" value={formData.pickUpBy} onChange={handleChange} className={inputClass} /></div>
-                <div><Label title="Deliver By" /><input type="text" name="deliverBy" value={formData.deliverBy} onChange={handleChange} className={inputClass} /></div>
+                <div><Label title="Pick Up By" /><input type="text" name="pickUpBy" value={formData.pickUpBy} onChange={handleChange} className={inputClass} placeholder="Courier Name" /></div>
+                <div><Label title="Deliver By" /><input type="text" name="deliverBy" value={formData.deliverBy} onChange={handleChange} className={inputClass} placeholder="Courier Name" /></div>
                 <div className="md:col-span-2">
                   <Label title="Job Status" />
                   <select name="initialStatus" value={formData.initialStatus} onChange={handleChange} className={inputClass}>
@@ -293,34 +292,34 @@ export default function OrderLayout({ workspaceUid, userProfile }) {
 
             {step === 4 && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in">
-                <div><Label title="Total Price" /><input type="number" name="totalPrice" value={formData.totalPrice} onChange={handleChange} className={inputClass} /></div>
-                <div><Label title="Payment" /><input type="number" name="payment" value={formData.payment} onChange={handleChange} className={inputClass} /></div>
-                <div><Label title="Balance" required={false} /><input type="number" name="balance" value={formData.balance} readOnly tabIndex={-1} className={readOnlyInputClass} /></div>
+                <div><Label title="Total Price" /><div className="relative"><span className="absolute left-3 top-2 text-mutedLight dark:text-mutedDark font-medium">₱</span><input type="number" name="totalPrice" value={formData.totalPrice} onChange={handleChange} className={`${inputClass} pl-8`} placeholder="0.00" /></div></div>
+                <div><Label title="Payment Amount" /><div className="relative"><span className="absolute left-3 top-2 text-mutedLight dark:text-mutedDark font-medium">₱</span><input type="number" name="payment" value={formData.payment} onChange={handleChange} className={`${inputClass} pl-8`} placeholder="0.00" /></div></div>
+                <div><Label title="Remaining Balance" required={false} /><div className="relative"><span className="absolute left-3 top-2 text-mutedLight dark:text-mutedDark font-medium">₱</span><input type="number" name="balance" value={formData.balance} readOnly tabIndex={-1} className={`${readOnlyInputClass} pl-8`} /></div></div>
                 <div>
                   <Label title="Pay Type" />
                   <select name="payType" value={formData.payType} onChange={handleChange} className={inputClass}>
                     <option value="Unpaid">Unpaid</option><option value="Partial">Partial</option><option value="Fully Paid">Fully Paid</option>
                   </select>
                 </div>
-                <div><Label title="Next Due" /><input type="date" name="nextDue" value={formData.nextDue} onChange={handleChange} className={inputClass} /></div>
-                <div><Label title="Remarks" required={false} /><input type="text" name="remarks" value={formData.remarks} onChange={handleChange} className={inputClass} /></div>
+                <div><Label title="Next Due Date" /><input type="date" name="nextDue" value={formData.nextDue} onChange={handleChange} className={inputClass} /></div>
+                <div><Label title="Remarks" required={false} /><input type="text" name="remarks" value={formData.remarks} onChange={handleChange} className={inputClass} placeholder="Payment notes..." /></div>
               </div>
             )}
           </div>
 
-          <div className="px-5 py-3 bg-pageLight/50 dark:bg-pageDark/50 border-t border-borderLight dark:border-borderDark flex justify-between items-center">
+          <div className="px-4 sm:px-5 py-3.5 bg-pageLight/50 dark:bg-pageDark/50 border-t border-borderLight dark:border-borderDark flex justify-between items-center mt-auto">
             {step > 1 ? (
-              <button type="button" onClick={prevStep} className="px-3 py-1.5 bg-surfaceLight dark:bg-surfaceDark border border-borderLight dark:border-borderDark text-textLight dark:text-textDark text-sm font-medium rounded hover:bg-pageLight dark:hover:bg-pageDark transition-colors shadow-sm disabled:opacity-50">
+              <button type="button" onClick={prevStep} className="px-4 py-2 bg-surfaceLight dark:bg-surfaceDark border border-borderLight dark:border-borderDark text-textLight dark:text-textDark text-sm font-medium rounded hover:bg-pageLight dark:hover:bg-pageDark transition-colors shadow-sm disabled:opacity-50">
                 Back
               </button>
             ) : <div />}
             
             {step < 4 ? (
-              <button type="button" onClick={handleNext} className="px-3 py-1.5 bg-primary text-white text-sm font-medium rounded hover:bg-primaryHover transition-colors shadow-sm">
+              <button type="button" onClick={handleNext} className="px-6 py-2 bg-primary text-white text-sm font-medium rounded hover:bg-primaryHover transition-colors shadow-sm">
                 Continue
               </button>
             ) : (
-              <button type="submit" disabled={isSubmitting} className="px-3 py-1.5 bg-primary text-white text-sm font-medium rounded hover:bg-primaryHover transition-colors shadow-sm disabled:opacity-50">
+              <button type="submit" disabled={isSubmitting} className="px-6 py-2 bg-primary text-white text-sm font-bold tracking-wide rounded hover:bg-primaryHover transition-colors shadow-sm disabled:opacity-50">
                 {isSubmitting ? 'Saving...' : 'Submit Order'}
               </button>
             )}

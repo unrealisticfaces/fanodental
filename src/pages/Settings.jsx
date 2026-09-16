@@ -662,8 +662,6 @@ export default function Settings({ workspaceUid }) {
         if (order.initialStatus === 'Delivered') delivered++;
 
         const prod = order.product || 'Unknown';
-        
-        // 🚀 THE FIX: Remove slashes and invalid Firebase characters from product names
         const safeProdKey = prod.replace(/[\.\#\$\/\[\]]/g, '-');
         
         products[safeProdKey] = (products[safeProdKey] || 0) + total;
@@ -696,35 +694,40 @@ export default function Settings({ workspaceUid }) {
     }
   };
 
-  const inputClass = "block w-full px-2.5 py-1.5 text-sm bg-white dark:bg-[#182433] border border-gray-300 dark:border-[#3a4859] rounded text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-colors shadow-sm";
-  const readOnlyInputClass = "block w-full px-2.5 py-1.5 text-sm bg-gray-50 dark:bg-[#111824] border border-gray-200 dark:border-[#2b3644] rounded text-gray-500 dark:text-gray-400 cursor-not-allowed focus:outline-none shadow-sm font-medium";
+  const inputClass = "block w-full px-2.5 py-2 sm:py-1.5 text-sm bg-white dark:bg-[#182433] border border-gray-300 dark:border-[#3a4859] rounded text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-colors shadow-sm";
+  const readOnlyInputClass = "block w-full px-2.5 py-2 sm:py-1.5 text-sm bg-gray-50 dark:bg-[#111824] border border-gray-200 dark:border-[#2b3644] rounded text-gray-500 dark:text-gray-400 cursor-not-allowed focus:outline-none shadow-sm font-medium";
   const labelClass = "block text-sm font-medium text-textLight dark:text-textDark mb-1";
 
   return (
-    <div className="max-w-6xl mx-auto flex flex-col md:flex-row gap-6">
+    <div className="max-w-6xl mx-auto flex flex-col md:flex-row gap-4 sm:gap-6">
       
-      <div className="w-full md:w-64 shrink-0 flex flex-col gap-1">
-        <h2 className="text-lg font-semibold text-textLight dark:text-textDark mb-4 px-3">System Settings</h2>
+      {/* 🚀 Mobile Fix: Horizontal scrolling tabs on small screens instead of vertical stacking */}
+      <style dangerouslySetInnerHTML={{__html: `
+        .hide-scroll::-webkit-scrollbar { display: none; }
+        .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+      `}} />
+      <div className="w-full md:w-64 shrink-0 flex md:flex-col gap-1 overflow-x-auto hide-scroll pb-2 md:pb-0">
+        <h2 className="hidden md:block text-lg font-semibold text-textLight dark:text-textDark mb-4 px-3">System Settings</h2>
         
-        <button onClick={() => setActiveTab('general')} className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'general' ? 'bg-primary/10 text-primary dark:text-blue-400' : 'text-mutedLight dark:text-mutedDark hover:bg-surfaceLight dark:hover:bg-surfaceDark hover:text-textLight dark:hover:text-textDark'}`}>
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" /><path d="M12 12l3 -3" /><path d="M12 12l-4 -2" /><path d="M12 12l-2 4" /><path d="M12 12l4 2" /></svg>
+        <button onClick={() => setActiveTab('general')} className={`flex items-center gap-2 sm:gap-3 px-3 py-2 rounded-md text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${activeTab === 'general' ? 'bg-primary/10 text-primary dark:text-blue-400' : 'text-mutedLight dark:text-mutedDark hover:bg-surfaceLight dark:hover:bg-surfaceDark hover:text-textLight dark:hover:text-textDark'}`}>
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" className="sm:w-[18px] sm:h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" /><path d="M12 12l3 -3" /><path d="M12 12l-4 -2" /><path d="M12 12l-2 4" /><path d="M12 12l4 2" /></svg>
           General Setup
         </button>
 
-        <button onClick={() => setActiveTab('technicians')} className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'technicians' ? 'bg-primary/10 text-primary dark:text-blue-400' : 'text-mutedLight dark:text-mutedDark hover:bg-surfaceLight dark:hover:bg-surfaceDark hover:text-textLight dark:hover:text-textDark'}`}>
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 7m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0" /><path d="M3 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /><path d="M21 21v-2a4 4 0 0 0 -3 -3.85" /></svg>
+        <button onClick={() => setActiveTab('technicians')} className={`flex items-center gap-2 sm:gap-3 px-3 py-2 rounded-md text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${activeTab === 'technicians' ? 'bg-primary/10 text-primary dark:text-blue-400' : 'text-mutedLight dark:text-mutedDark hover:bg-surfaceLight dark:hover:bg-surfaceDark hover:text-textLight dark:hover:text-textDark'}`}>
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" className="sm:w-[18px] sm:h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 7m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0" /><path d="M3 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /><path d="M21 21v-2a4 4 0 0 0 -3 -3.85" /></svg>
           Technician Roster
         </button>
 
         {isOwner && (
-          <button onClick={() => setActiveTab('users')} className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'users' ? 'bg-primary/10 text-primary dark:text-blue-400' : 'text-mutedLight dark:text-mutedDark hover:bg-surfaceLight dark:hover:bg-surfaceDark hover:text-textLight dark:hover:text-textDark'}`}>
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M8 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0" /><path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" /></svg>
+          <button onClick={() => setActiveTab('users')} className={`flex items-center gap-2 sm:gap-3 px-3 py-2 rounded-md text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${activeTab === 'users' ? 'bg-primary/10 text-primary dark:text-blue-400' : 'text-mutedLight dark:text-mutedDark hover:bg-surfaceLight dark:hover:bg-surfaceDark hover:text-textLight dark:hover:text-textDark'}`}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" className="sm:w-[18px] sm:h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M8 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0" /><path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" /></svg>
             System Users
           </button>
         )}
 
-        <button onClick={() => setActiveTab('database')} className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'database' ? 'bg-primary/10 text-primary dark:text-blue-400' : 'text-mutedLight dark:text-mutedDark hover:bg-surfaceLight dark:hover:bg-surfaceDark hover:text-textLight dark:hover:text-textDark'}`}>
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 14v-3a8 8 0 1 1 16 0v3" /><path d="M18 19c0 1.657 -2.686 3 -6 3s-6 -1.343 -6 -3c0 -3.197 12 -3.197 12 0z" /><path d="M12 14m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0" /></svg>
+        <button onClick={() => setActiveTab('database')} className={`flex items-center gap-2 sm:gap-3 px-3 py-2 rounded-md text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${activeTab === 'database' ? 'bg-primary/10 text-primary dark:text-blue-400' : 'text-mutedLight dark:text-mutedDark hover:bg-surfaceLight dark:hover:bg-surfaceDark hover:text-textLight dark:hover:text-textDark'}`}>
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" className="sm:w-[18px] sm:h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 14v-3a8 8 0 1 1 16 0v3" /><path d="M18 19c0 1.657 -2.686 3 -6 3s-6 -1.343 -6 -3c0 -3.197 12 -3.197 12 0z" /><path d="M12 14m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0" /></svg>
           Database Manager
         </button>
       </div>
@@ -733,11 +736,11 @@ export default function Settings({ workspaceUid }) {
         
         {activeTab === 'general' && (
           <div className="bg-surfaceLight dark:bg-surfaceDark border border-borderLight dark:border-borderDark rounded-md shadow-sm animate-in fade-in overflow-visible flex flex-col">
-            <div className="px-5 py-4 border-b border-borderLight dark:border-borderDark">
+            <div className="px-4 sm:px-5 py-3 sm:py-4 border-b border-borderLight dark:border-borderDark">
               <h3 className="text-base font-semibold text-textLight dark:text-textDark">General Configuration</h3>
-              <p className="text-sm text-mutedLight dark:text-mutedDark mt-0.5">These details will appear on printed invoices and slips.</p>
+              <p className="text-xs sm:text-sm text-mutedLight dark:text-mutedDark mt-0.5">These details will appear on printed invoices and slips.</p>
             </div>
-            <div className="p-5">
+            <div className="p-4 sm:p-5">
               <form onSubmit={handleGeneralSubmit} className="max-w-2xl space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="md:col-span-2">
@@ -746,7 +749,7 @@ export default function Settings({ workspaceUid }) {
                   </div>
                   <div className="md:col-span-2">
                     <label className={labelClass}>Official Address</label>
-                    <textarea value={labSettings.address || ''} onChange={(e) => setLabSettings({...labSettings, address: e.target.value})} className={`${inputClass} h-20 resize-none`} placeholder="Optional" disabled={!isOwner} />
+                    <textarea value={labSettings.address || ''} onChange={(e) => setLabSettings({...labSettings, address: e.target.value})} className={`${inputClass} h-24 resize-none`} placeholder="Optional" disabled={!isOwner} />
                   </div>
                   <div>
                     <label className={labelClass}>Contact Number</label>
@@ -757,13 +760,13 @@ export default function Settings({ workspaceUid }) {
                     <input type="email" value={labSettings.email || ''} onChange={(e) => setLabSettings({...labSettings, email: e.target.value})} className={inputClass} placeholder="Optional" disabled={!isOwner} />
                   </div>
                   <div>
-                    <label className={labelClass}>Tax ID (TIN) <span className="text-mutedLight dark:text-mutedDark font-normal text-xs ml-1">(Optional)</span></label>
+                    <label className={labelClass}>Tax ID (TIN) <span className="text-mutedLight dark:text-mutedDark font-normal text-[10px] sm:text-xs ml-1">(Optional)</span></label>
                     <input type="text" value={labSettings.taxId || ''} onChange={(e) => setLabSettings({...labSettings, taxId: e.target.value})} className={inputClass} disabled={!isOwner} />
                   </div>
                 </div>
                 {isOwner && (
                   <div className="pt-4 border-t border-borderLight dark:border-borderDark mt-6 flex justify-end">
-                    <button type="submit" disabled={isSavingGeneral} className="px-4 py-2 bg-primary text-white text-sm font-medium rounded hover:bg-primaryHover transition-colors shadow-sm disabled:opacity-50">
+                    <button type="submit" disabled={isSavingGeneral} className="w-full sm:w-auto px-6 py-2.5 sm:py-2 bg-primary text-white text-sm font-medium rounded hover:bg-primaryHover transition-colors shadow-sm disabled:opacity-50">
                       {isSavingGeneral ? 'Saving...' : 'Save Configuration'}
                     </button>
                   </div>
@@ -775,14 +778,14 @@ export default function Settings({ workspaceUid }) {
 
         {activeTab === 'technicians' && (
           <div className="bg-surfaceLight dark:bg-surfaceDark border border-borderLight dark:border-borderDark rounded-md shadow-sm flex flex-col overflow-visible animate-in fade-in">
-            <div className="px-6 py-4 border-b border-borderLight dark:border-borderDark flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-borderLight dark:border-borderDark flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <h2 className="text-base font-semibold text-textLight dark:text-textDark">Technician Roster</h2>
-                <p className="text-sm text-mutedLight dark:text-mutedDark mt-1">Manage your team. These names will appear as dropdowns to prevent payroll mismatches.</p>
+                <p className="text-xs sm:text-sm text-mutedLight dark:text-mutedDark mt-1">Manage your team. These names will appear as dropdowns to prevent payroll mismatches.</p>
               </div>
             </div>
             
-            <div className="p-6 border-b border-borderLight dark:border-borderDark bg-pageLight/30 dark:bg-pageDark/30">
+            <div className="p-4 sm:p-6 border-b border-borderLight dark:border-borderDark bg-pageLight/30 dark:bg-pageDark/30">
               <form onSubmit={handleAddTechnician} className="flex flex-col sm:flex-row gap-3">
                 <div className="flex-1">
                   <input 
@@ -803,31 +806,32 @@ export default function Settings({ workspaceUid }) {
                     className={inputClass} 
                   />
                 </div>
-                <button type="submit" disabled={isAddingTech} className="px-4 py-1.5 bg-primary text-white text-sm font-medium rounded hover:bg-primaryHover transition-colors shadow-sm disabled:opacity-50 whitespace-nowrap">
+                <button type="submit" disabled={isAddingTech} className="px-4 py-2.5 sm:py-1.5 bg-primary text-white text-sm font-medium rounded hover:bg-primaryHover transition-colors shadow-sm disabled:opacity-50 whitespace-nowrap">
                   {isAddingTech ? 'Adding...' : 'Add Technician'}
                 </button>
               </form>
             </div>
 
-            <div className="overflow-visible min-h-[300px]">
-              <table className="w-full text-left border-collapse">
+            {/* 🚀 Mobile Fix: Horizontal Scroll for tables */}
+            <div className="overflow-x-auto min-h-[300px] pb-24">
+              <table className="w-full text-left border-collapse min-w-[500px]">
                 <thead>
                   <tr className="bg-pageLight/50 dark:bg-pageDark/50 border-b border-borderLight dark:border-borderDark">
-                    <th className="px-6 py-3 text-xs font-semibold text-mutedLight dark:text-mutedDark uppercase tracking-wider">Technician Profile</th>
-                    <th className="px-6 py-3 text-xs font-semibold text-mutedLight dark:text-mutedDark uppercase tracking-wider text-right">Action</th>
+                    <th className="px-4 sm:px-6 py-3 text-[10px] sm:text-xs font-semibold text-mutedLight dark:text-mutedDark uppercase tracking-wider">Technician Profile</th>
+                    <th className="px-4 sm:px-6 py-3 text-[10px] sm:text-xs font-semibold text-mutedLight dark:text-mutedDark uppercase tracking-wider text-right">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-borderLight dark:border-borderDark">
                   {isLoading ? (
-                    <tr><td colSpan="2" className="px-6 py-8 text-center text-mutedLight dark:text-mutedDark text-sm animate-pulse">Loading roster...</td></tr>
+                    <tr><td colSpan="2" className="px-4 sm:px-6 py-8 text-center text-mutedLight dark:text-mutedDark text-sm animate-pulse">Loading roster...</td></tr>
                   ) : technicians.length === 0 ? (
-                    <tr><td colSpan="2" className="px-6 py-8 text-center text-mutedLight dark:text-mutedDark text-sm">No technicians added yet. Add one above.</td></tr>
+                    <tr><td colSpan="2" className="px-4 sm:px-6 py-8 text-center text-mutedLight dark:text-mutedDark text-sm">No technicians added yet. Add one above.</td></tr>
                   ) : (
                     technicians.map(tech => (
                       <tr key={tech.id} className="hover:bg-pageLight dark:hover:bg-pageDark transition-colors">
-                        <td className="px-6 py-3.5 text-sm font-medium text-textLight dark:text-textDark whitespace-nowrap">
+                        <td className="px-4 sm:px-6 py-3.5 text-sm font-medium text-textLight dark:text-textDark whitespace-nowrap">
                           <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs shadow-sm border border-primary/20 overflow-hidden">
+                            <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs shadow-sm border border-primary/20 overflow-hidden shrink-0">
                               {tech.photoURL ? (
                                 <img src={tech.photoURL} alt={tech.name} className="w-full h-full object-cover" />
                               ) : (
@@ -837,7 +841,7 @@ export default function Settings({ workspaceUid }) {
                             {tech.name}
                           </div>
                         </td>
-                        <td className="px-6 py-3.5 text-right whitespace-nowrap relative">
+                        <td className="px-4 sm:px-6 py-3.5 text-right whitespace-nowrap relative">
                           <button 
                             onClick={(e) => {
                               e.stopPropagation();
@@ -851,11 +855,11 @@ export default function Settings({ workspaceUid }) {
 
                           {openDropdownId === `tech_${tech.id}` && (
                             <div className="absolute right-6 top-10 mt-1 w-44 bg-surfaceLight dark:bg-surfaceDark border border-borderLight dark:border-borderDark rounded shadow-lg z-50 flex flex-col text-left py-1">
-                              <button onClick={(e) => { e.stopPropagation(); setEditingTech({ ...tech, originalName: tech.name }); setIsEditTechModalOpen(true); setOpenDropdownId(null); }} className="w-full text-left px-3 py-1.5 text-sm text-textLight dark:text-textDark hover:bg-pageLight dark:hover:bg-pageDark transition-colors font-medium">
+                              <button onClick={(e) => { e.stopPropagation(); setEditingTech({ ...tech, originalName: tech.name }); setIsEditTechModalOpen(true); setOpenDropdownId(null); }} className="w-full text-left px-3 py-2 text-sm text-textLight dark:text-textDark hover:bg-pageLight dark:hover:bg-pageDark transition-colors font-medium">
                                 Update Information
                               </button>
                               <div className="h-px bg-borderLight dark:bg-borderDark w-full my-1"></div>
-                              <button onClick={(e) => { e.stopPropagation(); handleDeleteTechnician(tech.id); setOpenDropdownId(null); }} className="w-full text-left px-3 py-1.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+                              <button onClick={(e) => { e.stopPropagation(); handleDeleteTechnician(tech.id); setOpenDropdownId(null); }} className="w-full text-left px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
                                 Remove Technician
                               </button>
                             </div>
@@ -872,44 +876,45 @@ export default function Settings({ workspaceUid }) {
         
         {activeTab === 'users' && isOwner && (
           <div className="bg-surfaceLight dark:bg-surfaceDark border border-borderLight dark:border-borderDark rounded-md shadow-sm flex flex-col overflow-visible animate-in fade-in">
-            <div className="px-5 py-4 border-b border-borderLight dark:border-borderDark flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="px-4 sm:px-5 py-4 border-b border-borderLight dark:border-borderDark flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <h3 className="text-base font-semibold text-textLight dark:text-textDark">User Permissions Matrix</h3>
-                <p className="text-sm text-mutedLight dark:text-mutedDark mt-0.5">Toggle checkboxes to grant or revoke specific actions, then click save.</p>
+                <p className="text-xs sm:text-sm text-mutedLight dark:text-mutedDark mt-0.5">Toggle checkboxes to grant or revoke specific actions, then click save.</p>
               </div>
-              <div className="flex items-center gap-2.5">
-                <button onClick={handleSaveAllPermissions} disabled={isSavingPermissions || staffList.length === 0} className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded transition-colors shadow-sm disabled:opacity-50 flex items-center gap-1.5">
+              <div className="flex items-center gap-2.5 w-full sm:w-auto">
+                <button onClick={handleSaveAllPermissions} disabled={isSavingPermissions || staffList.length === 0} className="flex-1 sm:flex-none px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-xs sm:text-sm font-medium rounded transition-colors shadow-sm disabled:opacity-50 flex items-center justify-center gap-1.5">
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M6 4h10l4 4v10a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2" /><path d="M12 14m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0" /><path d="M14 4l0 4l-6 0l0 -4" /></svg>
-                  {isSavingPermissions ? 'Saving...' : 'Save Permissions'}
+                  {isSavingPermissions ? 'Saving...' : 'Save'}
                 </button>
-                <button onClick={() => setIsStaffModalOpen(true)} className="px-3 py-1.5 bg-primary text-white text-sm font-medium rounded hover:bg-primaryHover transition-colors shadow-sm flex items-center gap-1.5">
+                <button onClick={() => setIsStaffModalOpen(true)} className="flex-1 sm:flex-none px-3 py-2 bg-primary text-white text-xs sm:text-sm font-medium rounded hover:bg-primaryHover transition-colors shadow-sm flex items-center justify-center gap-1.5">
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 5l0 14" /><path d="M5 12l14 0" /></svg>
                   Add User
                 </button>
               </div>
             </div>
             
-            <div className="overflow-visible min-h-[300px]">
-              <table className="w-full text-left border-collapse">
+            {/* 🚀 Mobile Fix: Horizontal Scroll for tables */}
+            <div className="overflow-x-auto min-h-[300px] pb-32">
+              <table className="w-full text-left border-collapse min-w-[700px]">
                 <thead>
                   <tr className="bg-pageLight/50 dark:bg-pageDark/50 border-b border-borderLight dark:border-borderDark">
-                    <th className="px-5 py-2.5 text-xs font-semibold text-mutedLight dark:text-mutedDark uppercase tracking-wider">User</th>
-                    <th className="px-5 py-2.5 text-xs font-semibold text-mutedLight dark:text-mutedDark uppercase tracking-wider text-center">Create</th>
-                    <th className="px-5 py-2.5 text-xs font-semibold text-mutedLight dark:text-mutedDark uppercase tracking-wider text-center">Edit / Update</th>
-                    <th className="px-5 py-2.5 text-xs font-semibold text-mutedLight dark:text-mutedDark uppercase tracking-wider text-center">Delete</th>
-                    <th className="px-5 py-2.5 text-xs font-semibold text-mutedLight dark:text-mutedDark uppercase tracking-wider">Status</th>
-                    <th className="px-5 py-2.5"></th>
+                    <th className="px-4 sm:px-5 py-2.5 text-[10px] sm:text-xs font-semibold text-mutedLight dark:text-mutedDark uppercase tracking-wider">User</th>
+                    <th className="px-4 sm:px-5 py-2.5 text-[10px] sm:text-xs font-semibold text-mutedLight dark:text-mutedDark uppercase tracking-wider text-center">Create</th>
+                    <th className="px-4 sm:px-5 py-2.5 text-[10px] sm:text-xs font-semibold text-mutedLight dark:text-mutedDark uppercase tracking-wider text-center">Edit / Update</th>
+                    <th className="px-4 sm:px-5 py-2.5 text-[10px] sm:text-xs font-semibold text-mutedLight dark:text-mutedDark uppercase tracking-wider text-center">Delete</th>
+                    <th className="px-4 sm:px-5 py-2.5 text-[10px] sm:text-xs font-semibold text-mutedLight dark:text-mutedDark uppercase tracking-wider">Status</th>
+                    <th className="px-4 sm:px-5 py-2.5"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-borderLight dark:divide-borderDark">
                   {isLoading ? (
-                    <tr><td colSpan="6" className="px-5 py-8 text-center text-mutedLight dark:text-mutedDark text-sm">Loading users...</td></tr>
+                    <tr><td colSpan="6" className="px-4 sm:px-5 py-8 text-center text-mutedLight dark:text-mutedDark text-sm">Loading users...</td></tr>
                   ) : staffList.length === 0 ? (
-                    <tr><td colSpan="6" className="px-5 py-8 text-center text-mutedLight dark:text-mutedDark text-sm">No users registered yet.</td></tr>
+                    <tr><td colSpan="6" className="px-4 sm:px-5 py-8 text-center text-mutedLight dark:text-mutedDark text-sm">No users registered yet.</td></tr>
                   ) : (
                     staffList.map(user => (
                       <tr key={user.id} className="hover:bg-pageLight dark:hover:bg-pageDark transition-colors">
-                        <td className="px-5 py-3 whitespace-nowrap">
+                        <td className="px-4 sm:px-5 py-3 whitespace-nowrap">
                           <div className="flex items-center gap-3">
                             <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs shrink-0 overflow-hidden border border-borderLight dark:border-borderDark">
                               {user.photoURL ? (
@@ -920,26 +925,26 @@ export default function Settings({ workspaceUid }) {
                             </div>
                             <div className="flex flex-col">
                               <span className="text-sm font-medium text-textLight dark:text-textDark">{user.name}</span>
-                              <span className="text-xs text-mutedLight dark:text-mutedDark">{user.email}</span>
+                              <span className="text-[11px] sm:text-xs text-mutedLight dark:text-mutedDark">{user.email}</span>
                             </div>
                           </div>
                         </td>
-                        <td className="px-5 py-3 text-center align-middle whitespace-nowrap">
-                          <input type="checkbox" checked={user.canCreate} onChange={(e) => handlePermissionChange(user.id, 'canCreate', e.target.checked)} className="w-4 h-4 rounded border-gray-300 dark:border-[#3a4859] text-primary focus:ring-primary bg-white dark:bg-[#182433] cursor-pointer" />
+                        <td className="px-4 sm:px-5 py-3 text-center align-middle whitespace-nowrap">
+                          <input type="checkbox" checked={user.canCreate} onChange={(e) => handlePermissionChange(user.id, 'canCreate', e.target.checked)} className="w-5 h-5 sm:w-4 sm:h-4 rounded border-gray-300 dark:border-[#3a4859] text-primary focus:ring-primary bg-white dark:bg-[#182433] cursor-pointer" />
                         </td>
-                        <td className="px-5 py-3 text-center align-middle whitespace-nowrap">
-                          <input type="checkbox" checked={user.canEdit} onChange={(e) => handlePermissionChange(user.id, 'canEdit', e.target.checked)} className="w-4 h-4 rounded border-gray-300 dark:border-[#3a4859] text-primary focus:ring-primary bg-white dark:bg-[#182433] cursor-pointer" />
+                        <td className="px-4 sm:px-5 py-3 text-center align-middle whitespace-nowrap">
+                          <input type="checkbox" checked={user.canEdit} onChange={(e) => handlePermissionChange(user.id, 'canEdit', e.target.checked)} className="w-5 h-5 sm:w-4 sm:h-4 rounded border-gray-300 dark:border-[#3a4859] text-primary focus:ring-primary bg-white dark:bg-[#182433] cursor-pointer" />
                         </td>
-                        <td className="px-5 py-3 text-center align-middle whitespace-nowrap">
-                          <input type="checkbox" checked={user.canDelete} onChange={(e) => handlePermissionChange(user.id, 'canDelete', e.target.checked)} className="w-4 h-4 rounded border-gray-300 dark:border-[#3a4859] text-red-600 focus:ring-red-500 bg-white dark:bg-[#182433] cursor-pointer" />
+                        <td className="px-4 sm:px-5 py-3 text-center align-middle whitespace-nowrap">
+                          <input type="checkbox" checked={user.canDelete} onChange={(e) => handlePermissionChange(user.id, 'canDelete', e.target.checked)} className="w-5 h-5 sm:w-4 sm:h-4 rounded border-gray-300 dark:border-[#3a4859] text-red-600 focus:ring-red-500 bg-white dark:bg-[#182433] cursor-pointer" />
                         </td>
-                        <td className="px-5 py-3 whitespace-nowrap">
+                        <td className="px-4 sm:px-5 py-3 whitespace-nowrap">
                           <div className="flex items-center gap-1.5">
                             <span className={`w-2 h-2 rounded-full ${user.status === 'Active' ? 'bg-green-500' : 'bg-red-500'}`}></span>
-                            <span className="text-sm text-mutedLight dark:text-mutedDark">{user.status}</span>
+                            <span className="text-xs sm:text-sm text-mutedLight dark:text-mutedDark">{user.status}</span>
                           </div>
                         </td>
-                        <td className="px-5 py-3 text-right whitespace-nowrap relative">
+                        <td className="px-4 sm:px-5 py-3 text-right whitespace-nowrap relative">
                           <button 
                             onClick={(e) => {
                               e.stopPropagation();
@@ -957,14 +962,14 @@ export default function Settings({ workspaceUid }) {
                             <div className="absolute right-6 top-10 mt-1 w-44 bg-surfaceLight dark:bg-surfaceDark border border-borderLight dark:border-borderDark rounded shadow-lg z-50 flex flex-col text-left py-1">
                               <button
                                 onClick={(e) => { e.stopPropagation(); openEditModal(user); setOpenDropdownId(null); }}
-                                className="w-full text-left px-3 py-1.5 text-sm text-textLight dark:text-textDark hover:bg-pageLight dark:hover:bg-pageDark transition-colors"
+                                className="w-full text-left px-3 py-2 text-sm text-textLight dark:text-textDark hover:bg-pageLight dark:hover:bg-pageDark transition-colors"
                               >
                                 Update Information
                               </button>
                               <div className="h-px bg-borderLight dark:border-borderDark w-full my-1"></div>
                               <button
                                 onClick={(e) => { e.stopPropagation(); handleRemoveStaff(user.id); setOpenDropdownId(null); }}
-                                className="w-full text-left px-3 py-1.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                                className="w-full text-left px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                               >
                                 Remove Access
                               </button>
@@ -982,14 +987,14 @@ export default function Settings({ workspaceUid }) {
 
         {activeTab === 'database' && (
           <div className="bg-surfaceLight dark:bg-surfaceDark border border-borderLight dark:border-borderDark rounded-md shadow-sm animate-in fade-in flex flex-col overflow-visible">
-            <div className="px-5 py-4 border-b border-borderLight dark:border-borderDark">
+            <div className="px-4 sm:px-5 py-4 border-b border-borderLight dark:border-borderDark">
               <h3 className="text-base font-semibold text-textLight dark:text-textDark">Database Manager</h3>
-              <p className="text-sm text-mutedLight dark:text-mutedDark mt-0.5">Manage your system backups, imports, and system data resets.</p>
+              <p className="text-xs sm:text-sm text-mutedLight dark:text-mutedDark mt-0.5">Manage your system backups, imports, and system data resets.</p>
             </div>
-            <div className="p-5">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-5 max-w-5xl">
+            <div className="p-4 sm:p-5">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5 max-w-5xl">
                 
-                <div className="p-5 border border-borderLight dark:border-borderDark rounded bg-pageLight/50 dark:bg-pageDark/50 flex flex-col justify-between">
+                <div className="p-4 sm:p-5 border border-borderLight dark:border-borderDark rounded bg-pageLight/50 dark:bg-pageDark/50 flex flex-col justify-between">
                   <div>
                     <div className="flex items-center gap-3 mb-2">
                       <svg xmlns="http://www.w3.org/2000/svg" className="text-primary w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 14v-3a8 8 0 1 1 16 0v3" /><path d="M18 19c0 1.657 -2.686 3 -6 3s-6 -1.343 -6 -3c0 -3.197 12 -3.197 12 0z" /><path d="M12 14m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0" /></svg>
@@ -1005,7 +1010,7 @@ export default function Settings({ workspaceUid }) {
                   </button>
                 </div>
 
-                <div className="p-5 border border-borderLight dark:border-borderDark rounded bg-pageLight/50 dark:bg-pageDark/50 flex flex-col justify-between">
+                <div className="p-4 sm:p-5 border border-borderLight dark:border-borderDark rounded bg-pageLight/50 dark:bg-pageDark/50 flex flex-col justify-between">
                   <div>
                     <div className="flex items-center gap-3 mb-2">
                       <svg xmlns="http://www.w3.org/2000/svg" className="text-amber-500 w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-2" /><path d="M7 9l5 -5l5 5" /><path d="M12 4l0 12" /></svg>
@@ -1034,13 +1039,13 @@ export default function Settings({ workspaceUid }) {
                   </div>
                 </div>
 
-                <div className="p-5 border border-red-200 dark:border-red-900/30 rounded bg-red-50/50 dark:bg-red-900/10 flex flex-col justify-between">
+                <div className="p-4 sm:p-5 border border-red-200 dark:border-red-900/30 rounded bg-red-50/50 dark:bg-red-900/10 flex flex-col justify-between">
                   <div>
                     <div className="flex items-center gap-3 mb-2">
                       <svg xmlns="http://www.w3.org/2000/svg" className="text-red-500 w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 7l16 0" /><path d="M10 11l0 6" /><path d="M14 11l0 6" /><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12" /><path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3" /></svg>
                       <h4 className="text-sm font-semibold text-red-700 dark:text-red-400">Wipe Database</h4>
                     </div>
-                    <p className="text-xs text-red-600/80 dark:text-red-400/80 mb-4 leading-relaxed">
+                    <p className="text-[11px] sm:text-xs text-red-600/80 dark:text-red-400/80 mb-4 leading-relaxed">
                       Danger Zone. Permanently delete all orders, payments, technicians, and logs. This action cannot be undone.
                     </p>
                   </div>
@@ -1050,13 +1055,13 @@ export default function Settings({ workspaceUid }) {
                   </button>
                 </div>
                 
-                <div className="p-5 border border-blue-200 dark:border-blue-900/30 rounded bg-blue-50/50 dark:bg-blue-900/10 flex flex-col justify-between">
+                <div className="p-4 sm:p-5 border border-blue-200 dark:border-blue-900/30 rounded bg-blue-50/50 dark:bg-blue-900/10 flex flex-col justify-between">
                   <div>
                     <div className="flex items-center gap-3 mb-2">
                       <svg xmlns="http://www.w3.org/2000/svg" className="text-blue-500 w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 8l0 8" /><path d="M8 12l4 -4l4 4" /><path d="M3 21h18" /></svg>
                       <h4 className="text-sm font-semibold text-blue-700 dark:text-blue-400">Restore Archive</h4>
                     </div>
-                    <p className="text-xs text-blue-600/80 dark:text-blue-400/80 mb-4 leading-relaxed">
+                    <p className="text-[11px] sm:text-xs text-blue-600/80 dark:text-blue-400/80 mb-4 leading-relaxed">
                       Move all previously archived data back into the main active Records folder to restore full all-time totals.
                     </p>
                   </div>
@@ -1066,13 +1071,13 @@ export default function Settings({ workspaceUid }) {
                   </button>
                 </div>
 
-                <div className="p-5 border border-purple-200 dark:border-purple-900/30 rounded bg-purple-50/50 dark:bg-purple-900/10 flex flex-col justify-between">
+                <div className="p-4 sm:p-5 border border-purple-200 dark:border-purple-900/30 rounded bg-purple-50/50 dark:bg-purple-900/10 flex flex-col justify-between">
                   <div>
                     <div className="flex items-center gap-3 mb-2">
                       <svg xmlns="http://www.w3.org/2000/svg" className="text-purple-500 w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 21v-13l9 -4l9 4v13" /><path d="M13 13h4v8h-10v-6h6" /><path d="M13 21v-9a1 1 0 0 0 -1 -1h-2a1 1 0 0 0 -1 1v3" /></svg>
                       <h4 className="text-sm font-semibold text-purple-700 dark:text-purple-400">Generate Bank Ledger</h4>
                     </div>
-                    <p className="text-xs text-purple-600/80 dark:text-purple-400/80 mb-4 leading-relaxed">
+                    <p className="text-[11px] sm:text-xs text-purple-600/80 dark:text-purple-400/80 mb-4 leading-relaxed">
                       Step 1 of optimization: Calculates your all-time 7M totals and saves them as a lightweight file.
                     </p>
                   </div>
@@ -1090,15 +1095,15 @@ export default function Settings({ workspaceUid }) {
       </div>
 
       {isStaffModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 sm:p-6">
           <div className="bg-surfaceLight dark:bg-surfaceDark border border-borderLight dark:border-borderDark rounded-md shadow-xl w-full max-w-sm flex flex-col animate-in fade-in">
-            <div className="px-5 py-3.5 border-b border-borderLight dark:border-borderDark flex items-center justify-between">
+            <div className="px-4 sm:px-5 py-3.5 border-b border-borderLight dark:border-borderDark flex items-center justify-between">
               <h3 className="text-base font-semibold text-textLight dark:text-textDark">Add New User</h3>
-              <button onClick={() => setIsStaffModalOpen(false)} className="text-mutedLight dark:text-mutedDark hover:text-textLight dark:hover:text-textDark">
+              <button onClick={() => setIsStaffModalOpen(false)} className="text-mutedLight dark:text-mutedDark hover:text-textLight dark:hover:text-textDark p-1">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
               </button>
             </div>
-            <div className="p-5">
+            <div className="p-4 sm:p-5">
               <form id="staffForm" onSubmit={handleAddStaff} className="space-y-4">
                 <div>
                   <label className={labelClass}>Full Name</label>
@@ -1116,29 +1121,29 @@ export default function Settings({ workspaceUid }) {
                     <option value="Viewer">Viewer</option>
                   </select>
                 </div>
-                <div className="p-3 bg-pageLight dark:bg-pageDark border border-borderLight dark:border-borderDark rounded text-xs text-mutedLight dark:text-mutedDark">
+                <div className="p-3 bg-pageLight dark:bg-pageDark border border-borderLight dark:border-borderDark rounded text-[11px] sm:text-xs text-mutedLight dark:text-mutedDark">
                   Initial password is set to <strong>123456</strong>. The user will be required to change it on their first login.
                 </div>
               </form>
             </div>
-            <div className="px-5 py-3 border-t border-borderLight dark:border-borderDark bg-pageLight/50 dark:bg-pageDark/50 flex justify-end gap-3 rounded-b-md">
+            <div className="px-4 sm:px-5 py-3 border-t border-borderLight dark:border-borderDark bg-pageLight/50 dark:bg-pageDark/50 flex justify-end gap-3 rounded-b-md">
               <button type="button" onClick={() => setIsStaffModalOpen(false)} className="px-3 py-1.5 bg-surfaceLight dark:bg-surfaceDark border border-borderLight dark:border-borderDark text-textLight dark:text-textDark text-sm font-medium rounded hover:bg-pageLight dark:hover:bg-pageDark transition-colors shadow-sm">Cancel</button>
-              <button type="submit" form="staffForm" className="px-3 py-1.5 bg-primary text-white text-sm font-medium rounded hover:bg-primaryHover transition-colors shadow-sm">Create Account</button>
+              <button type="submit" form="staffForm" className="px-4 sm:px-3 py-1.5 bg-primary text-white text-sm font-medium rounded hover:bg-primaryHover transition-colors shadow-sm">Create Account</button>
             </div>
           </div>
         </div>
       )}
 
       {isEditStaffModalOpen && editingStaff && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 sm:p-6">
           <div className="bg-surfaceLight dark:bg-surfaceDark border border-borderLight dark:border-borderDark rounded-md shadow-xl w-full max-w-sm flex flex-col animate-in fade-in">
-            <div className="px-5 py-3.5 border-b border-borderLight dark:border-borderDark flex items-center justify-between">
+            <div className="px-4 sm:px-5 py-3.5 border-b border-borderLight dark:border-borderDark flex items-center justify-between">
               <h3 className="text-base font-semibold text-textLight dark:text-textDark">Edit User Information</h3>
-              <button onClick={() => setIsEditStaffModalOpen(false)} className="text-mutedLight dark:text-mutedDark hover:text-textLight dark:hover:text-textDark">
+              <button onClick={() => setIsEditStaffModalOpen(false)} className="text-mutedLight dark:text-mutedDark hover:text-textLight dark:hover:text-textDark p-1">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
               </button>
             </div>
-            <div className="p-5">
+            <div className="p-4 sm:p-5">
               <form id="editStaffForm" onSubmit={handleEditStaffSubmit} className="space-y-4">
                 <div>
                   <label className={labelClass}>Email Address</label>
@@ -1169,38 +1174,38 @@ export default function Settings({ workspaceUid }) {
                 </div>
               </form>
             </div>
-            <div className="px-5 py-3 border-t border-borderLight dark:border-borderDark bg-pageLight/50 dark:bg-pageDark/50 flex justify-end gap-3 rounded-b-md">
+            <div className="px-4 sm:px-5 py-3 border-t border-borderLight dark:border-borderDark bg-pageLight/50 dark:bg-pageDark/50 flex justify-end gap-3 rounded-b-md">
               <button type="button" onClick={() => setIsEditStaffModalOpen(false)} className="px-3 py-1.5 bg-surfaceLight dark:bg-surfaceDark border border-borderLight dark:border-borderDark text-textLight dark:text-textDark text-sm font-medium rounded hover:bg-pageLight dark:hover:bg-pageDark transition-colors shadow-sm">Cancel</button>
-              <button type="submit" form="editStaffForm" className="px-3 py-1.5 bg-primary text-white text-sm font-medium rounded hover:bg-primaryHover transition-colors shadow-sm">Save Changes</button>
+              <button type="submit" form="editStaffForm" className="px-4 sm:px-3 py-1.5 bg-primary text-white text-sm font-medium rounded hover:bg-primaryHover transition-colors shadow-sm">Save Changes</button>
             </div>
           </div>
         </div>
       )}
 
       {isEditTechModalOpen && editingTech && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 sm:p-6">
           <div className="bg-surfaceLight dark:bg-surfaceDark border border-borderLight dark:border-borderDark rounded-md shadow-xl w-full max-w-sm flex flex-col animate-in fade-in">
-            <div className="px-5 py-3.5 border-b border-borderLight dark:border-borderDark flex items-center justify-between">
+            <div className="px-4 sm:px-5 py-3.5 border-b border-borderLight dark:border-borderDark flex items-center justify-between">
               <h3 className="text-base font-semibold text-textLight dark:text-textDark">Edit Technician</h3>
-              <button onClick={() => setIsEditTechModalOpen(false)} className="text-mutedLight dark:text-mutedDark hover:text-textLight dark:hover:text-textDark">
+              <button onClick={() => setIsEditTechModalOpen(false)} className="text-mutedLight dark:text-mutedDark hover:text-textLight dark:hover:text-textDark p-1">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
               </button>
             </div>
-            <div className="p-5">
+            <div className="p-4 sm:p-5">
               <form id="editTechForm" onSubmit={handleEditTechSubmit} className="space-y-4">
                 <div>
                   <label className={labelClass}>Full Name</label>
                   <input type="text" value={editingTech.name} onChange={e => setEditingTech({...editingTech, name: e.target.value})} className={inputClass} required />
                 </div>
                 <div>
-                  <label className={labelClass}>Profile Photo URL <span className="text-mutedLight dark:text-mutedDark font-normal text-xs ml-1">(Optional)</span></label>
+                  <label className={labelClass}>Profile Photo URL <span className="text-mutedLight dark:text-mutedDark font-normal text-[10px] sm:text-xs ml-1">(Optional)</span></label>
                   <input type="url" value={editingTech.photoURL || ''} onChange={e => setEditingTech({...editingTech, photoURL: e.target.value})} className={inputClass} placeholder="https://example.com/photo.jpg" />
                 </div>
               </form>
             </div>
-            <div className="px-5 py-3 border-t border-borderLight dark:border-borderDark bg-pageLight/50 dark:bg-pageDark/50 flex justify-end gap-3 rounded-b-md">
+            <div className="px-4 sm:px-5 py-3 border-t border-borderLight dark:border-borderDark bg-pageLight/50 dark:bg-pageDark/50 flex justify-end gap-3 rounded-b-md">
               <button type="button" onClick={() => setIsEditTechModalOpen(false)} className="px-3 py-1.5 bg-surfaceLight dark:bg-surfaceDark border border-borderLight dark:border-borderDark text-textLight dark:text-textDark text-sm font-medium rounded hover:bg-pageLight dark:hover:bg-pageDark transition-colors shadow-sm">Cancel</button>
-              <button type="submit" form="editTechForm" className="px-3 py-1.5 bg-primary text-white text-sm font-medium rounded hover:bg-primaryHover transition-colors shadow-sm">Save Changes</button>
+              <button type="submit" form="editTechForm" className="px-4 sm:px-3 py-1.5 bg-primary text-white text-sm font-medium rounded hover:bg-primaryHover transition-colors shadow-sm">Save Changes</button>
             </div>
           </div>
         </div>

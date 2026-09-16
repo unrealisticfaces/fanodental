@@ -108,7 +108,7 @@ export default function SystemLogs({ workspaceUid }) {
     <div className="max-w-7xl mx-auto">
       <div className="bg-surfaceLight dark:bg-surfaceDark border border-borderLight dark:border-borderDark rounded-md shadow-sm flex flex-col transition-colors duration-200">
         
-        <div className="px-6 py-4 border-b border-borderLight dark:border-borderDark flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="px-4 sm:px-6 py-4 border-b border-borderLight dark:border-borderDark flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <h2 className="text-base font-semibold text-textLight dark:text-textDark">System Activity Logs</h2>
           <div className="relative w-full sm:w-72">
             <input
@@ -124,35 +124,36 @@ export default function SystemLogs({ workspaceUid }) {
           </div>
         </div>
 
-        <div className="overflow-x-auto min-h-[400px]">
-          <table className="w-full text-left border-collapse">
+        {/* 🚀 Mobile Fix: Horizontal scrolling wrapper for logs table */}
+        <div className="overflow-x-auto min-h-[400px] w-full pb-8">
+          <table className="w-full text-left border-collapse min-w-[800px]">
             <thead>
               <tr className="bg-surfaceLight dark:bg-surfaceDark border-b border-borderLight dark:border-borderDark">
-                <th className="px-6 py-3 text-xs font-semibold text-mutedLight dark:text-mutedDark uppercase tracking-wider">Timestamp</th>
-                <th className="px-6 py-3 text-xs font-semibold text-mutedLight dark:text-mutedDark uppercase tracking-wider">Action</th>
-                <th className="px-6 py-3 text-xs font-semibold text-mutedLight dark:text-mutedDark uppercase tracking-wider">RX No.</th>
-                <th className="px-6 py-3 text-xs font-semibold text-mutedLight dark:text-mutedDark uppercase tracking-wider">Details</th>
-                <th className="px-6 py-3 text-xs font-semibold text-mutedLight dark:text-mutedDark uppercase tracking-wider">User</th>
-                <th className="px-6 py-3 text-xs font-semibold text-mutedLight dark:text-mutedDark uppercase tracking-wider">Payment</th>
-                <th className="px-6 py-3 text-xs font-semibold text-mutedLight dark:text-mutedDark uppercase tracking-wider text-right">System Status</th>
+                <th className="px-4 sm:px-6 py-3 text-[10px] sm:text-xs font-semibold text-mutedLight dark:text-mutedDark uppercase tracking-wider">Timestamp</th>
+                <th className="px-4 sm:px-6 py-3 text-[10px] sm:text-xs font-semibold text-mutedLight dark:text-mutedDark uppercase tracking-wider">Action</th>
+                <th className="px-4 sm:px-6 py-3 text-[10px] sm:text-xs font-semibold text-mutedLight dark:text-mutedDark uppercase tracking-wider">RX No.</th>
+                <th className="px-4 sm:px-6 py-3 text-[10px] sm:text-xs font-semibold text-mutedLight dark:text-mutedDark uppercase tracking-wider">Details</th>
+                <th className="px-4 sm:px-6 py-3 text-[10px] sm:text-xs font-semibold text-mutedLight dark:text-mutedDark uppercase tracking-wider">User</th>
+                <th className="px-4 sm:px-6 py-3 text-[10px] sm:text-xs font-semibold text-mutedLight dark:text-mutedDark uppercase tracking-wider">Payment</th>
+                <th className="px-4 sm:px-6 py-3 text-[10px] sm:text-xs font-semibold text-mutedLight dark:text-mutedDark uppercase tracking-wider text-right">System Status</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-borderLight dark:divide-borderDark">
               {isLoading ? (
                 Array(5).fill(0).map((_, i) => (
                   <tr key={i} className="animate-pulse">
-                    <td className="px-6 py-5"><div className="h-4 bg-gray-200 dark:bg-[#2f333f] rounded w-24"></div></td>
-                    <td className="px-6 py-5"><div className="h-4 bg-gray-200 dark:bg-[#2f333f] rounded w-16"></div></td>
-                    <td className="px-6 py-5"><div className="h-4 bg-gray-200 dark:bg-[#2f333f] rounded w-20"></div></td>
-                    <td className="px-6 py-5"><div className="h-4 bg-gray-200 dark:bg-[#2f333f] rounded w-32"></div></td>
-                    <td className="px-6 py-5"><div className="h-4 bg-gray-200 dark:bg-[#2f333f] rounded w-24"></div></td>
-                    <td className="px-6 py-5"><div className="h-4 bg-gray-200 dark:bg-[#2f333f] rounded w-16"></div></td>
-                    <td className="px-6 py-5 flex justify-end"><div className="h-4 bg-gray-200 dark:bg-[#2f333f] rounded w-20"></div></td>
+                    <td className="px-4 sm:px-6 py-4 sm:py-5"><div className="h-4 bg-gray-200 dark:bg-[#2f333f] rounded w-20 sm:w-24"></div></td>
+                    <td className="px-4 sm:px-6 py-4 sm:py-5"><div className="h-4 bg-gray-200 dark:bg-[#2f333f] rounded w-14 sm:w-16"></div></td>
+                    <td className="px-4 sm:px-6 py-4 sm:py-5"><div className="h-4 bg-gray-200 dark:bg-[#2f333f] rounded w-16 sm:w-20"></div></td>
+                    <td className="px-4 sm:px-6 py-4 sm:py-5"><div className="h-4 bg-gray-200 dark:bg-[#2f333f] rounded w-24 sm:w-32"></div></td>
+                    <td className="px-4 sm:px-6 py-4 sm:py-5"><div className="h-4 bg-gray-200 dark:bg-[#2f333f] rounded w-20 sm:w-24"></div></td>
+                    <td className="px-4 sm:px-6 py-4 sm:py-5"><div className="h-4 bg-gray-200 dark:bg-[#2f333f] rounded w-14 sm:w-16"></div></td>
+                    <td className="px-4 sm:px-6 py-4 sm:py-5 flex justify-end"><div className="h-4 bg-gray-200 dark:bg-[#2f333f] rounded w-16 sm:w-20"></div></td>
                   </tr>
                 ))
               ) : currentLogs.length === 0 ? (
                 <tr>
-                  <td colSpan="7" className="px-6 py-8 text-center text-mutedLight dark:text-mutedDark text-sm">
+                  <td colSpan="7" className="px-4 sm:px-6 py-8 text-center text-mutedLight dark:text-mutedDark text-sm">
                     {searchTerm ? 'No matching logs found.' : 'No system activity recorded yet.'}
                   </td>
                 </tr>
@@ -163,27 +164,27 @@ export default function SystemLogs({ workspaceUid }) {
 
                   return (
                     <tr key={log.id || log.key} className="hover:bg-pageLight dark:hover:bg-pageDark transition-colors">
-                      <td className="px-6 py-4 text-sm text-mutedLight dark:text-mutedDark whitespace-nowrap align-middle">{formatDate(log.timestamp)}</td>
-                      <td className="px-6 py-4 text-sm whitespace-nowrap align-middle">
-                        <span className={`inline-flex items-center px-2 py-1 rounded text-[11px] font-bold tracking-wide ${getActionColor(log.action)}`}>{log.action}</span>
+                      <td className="px-4 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-mutedLight dark:text-mutedDark whitespace-nowrap align-middle">{formatDate(log.timestamp)}</td>
+                      <td className="px-4 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm whitespace-nowrap align-middle">
+                        <span className={`inline-flex items-center px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-[9px] sm:text-[11px] font-bold tracking-wide ${getActionColor(log.action)}`}>{log.action}</span>
                       </td>
-                      <td className="px-6 py-4 text-sm font-medium text-textLight dark:text-textDark whitespace-nowrap align-middle">{extracted.rx !== '-' ? extracted.rx : 'N/A'}</td>
-                      <td className="px-6 py-4 text-sm text-textLight dark:text-textDark align-middle max-w-sm break-words leading-relaxed">{extracted.summary}</td>
-                      <td className="px-6 py-4 text-sm text-textLight dark:text-textDark whitespace-nowrap align-middle">
-                        <div className="flex items-center gap-2.5">
+                      <td className="px-4 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-medium text-textLight dark:text-textDark whitespace-nowrap align-middle">{extracted.rx !== '-' ? extracted.rx : 'N/A'}</td>
+                      <td className="px-4 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-textLight dark:text-textDark align-middle max-w-xs sm:max-w-sm break-words leading-relaxed">{extracted.summary}</td>
+                      <td className="px-4 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-textLight dark:text-textDark whitespace-nowrap align-middle">
+                        <div className="flex items-center gap-2 sm:gap-2.5">
                           {log.userPhoto ? (
-                            <img src={log.userPhoto} alt={displayUser} className="w-6 h-6 rounded-full object-cover border border-borderLight dark:border-borderDark" />
+                            <img src={log.userPhoto} alt={displayUser} className="w-5 h-5 sm:w-6 sm:h-6 rounded-full object-cover border border-borderLight dark:border-borderDark" />
                           ) : (
-                            <div className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-[10px]">
+                            <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-[9px] sm:text-[10px]">
                               {displayUser.charAt(0).toUpperCase()}
                             </div>
                           )}
                           <span className="font-medium">{displayUser}</span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-sm whitespace-nowrap align-middle">
+                      <td className="px-4 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm whitespace-nowrap align-middle">
                         {extracted.payment !== '-' ? (
-                          <span className={`inline-flex items-center px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider w-fit ${
+                          <span className={`inline-flex items-center px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-[9px] sm:text-[10px] font-bold uppercase tracking-wider w-fit ${
                             extracted.payment === 'Fully Paid' || extracted.payment === 'Paid'
                               ? 'text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/30' 
                               : extracted.payment === 'Partial'
@@ -196,9 +197,9 @@ export default function SystemLogs({ workspaceUid }) {
                           <span className="text-mutedLight dark:text-mutedDark">-</span>
                         )}
                       </td>
-                      <td className="px-6 py-4 text-sm whitespace-nowrap text-right align-middle">
-                        <span className="inline-flex items-center justify-end gap-1.5 text-green-600 dark:text-green-400 font-medium">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                      <td className="px-4 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm whitespace-nowrap text-right align-middle">
+                        <span className="inline-flex items-center justify-end gap-1 sm:gap-1.5 text-green-600 dark:text-green-400 font-medium">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 sm:h-4 sm:w-4" viewBox="0 0 20 20" fill="currentColor">
                             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                           </svg>
                           Success
@@ -213,15 +214,15 @@ export default function SystemLogs({ workspaceUid }) {
         </div>
         
         {!isLoading && filteredLogs.length > 0 && (
-          <div className="px-6 py-3 border-t border-borderLight dark:border-borderDark flex items-center justify-between text-sm text-mutedLight dark:text-mutedDark bg-surfaceLight dark:bg-surfaceDark rounded-b-md overflow-x-auto">
+          <div className="px-4 sm:px-6 py-3 border-t border-borderLight dark:border-borderDark flex items-center justify-between text-xs sm:text-sm text-mutedLight dark:text-mutedDark bg-surfaceLight dark:bg-surfaceDark rounded-b-md overflow-x-auto">
             <span className="whitespace-nowrap mr-4">
-              Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredLogs.length)} of {filteredLogs.length} entries
+              Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredLogs.length)} of {filteredLogs.length}
             </span>
             <div className="flex items-center gap-1 shrink-0">
               <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="px-2 py-1 hover:text-textLight dark:hover:text-textDark disabled:opacity-50">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
               </button>
-              <button className="w-7 h-7 flex items-center justify-center rounded bg-primary text-white text-sm font-medium shadow-sm">{currentPage}</button>
+              <button className="w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center rounded bg-primary text-white text-xs sm:text-sm font-medium shadow-sm">{currentPage}</button>
               <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages === 0} className="px-2 py-1 hover:text-textLight dark:hover:text-textDark disabled:opacity-50">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" /></svg>
               </button>

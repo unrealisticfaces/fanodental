@@ -9,15 +9,15 @@ export default function Status({ workspaceUid }) {
   if (!workspaceUid) return null;
 
   const StatusCard = ({ order, isDelivered }) => (
-    <div className="bg-surfaceLight dark:bg-surfaceDark border border-borderLight dark:border-borderDark rounded-md p-4 shadow-sm hover:shadow transition-all duration-200 group">
-      <div className="flex justify-between items-start mb-3">
+    <div className="bg-surfaceLight dark:bg-surfaceDark border border-borderLight dark:border-borderDark rounded-md p-3 sm:p-4 shadow-sm hover:shadow transition-all duration-200 group">
+      <div className="flex justify-between items-start mb-2.5 sm:mb-3">
         <div>
           <h4 className="font-semibold text-textLight dark:text-textDark text-sm group-hover:text-primary transition-colors">
             {order.rxNumber}
           </h4>
-          <p className="text-xs text-mutedLight dark:text-mutedDark mt-0.5">Dr. {order.dentistName}</p>
+          <p className="text-[11px] sm:text-xs text-mutedLight dark:text-mutedDark mt-0.5">Dr. {order.dentistName}</p>
         </div>
-        <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+        <span className={`inline-flex items-center px-2 py-0.5 rounded text-[9px] sm:text-[10px] font-bold uppercase tracking-wider ${
           isDelivered 
             ? 'bg-green-50 text-green-600 dark:bg-green-500/10 dark:text-green-400' 
             : 'bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-500'
@@ -26,10 +26,10 @@ export default function Status({ workspaceUid }) {
         </span>
       </div>
       
-      <div className="h-px w-full bg-borderLight dark:bg-borderDark mb-3"></div>
+      <div className="h-px w-full bg-borderLight dark:bg-borderDark mb-2.5 sm:mb-3"></div>
 
-      <div className="space-y-2">
-        <div className="flex justify-between items-center text-xs">
+      <div className="space-y-1.5 sm:space-y-2">
+        <div className="flex justify-between items-center text-[11px] sm:text-xs">
           <span className="text-mutedLight dark:text-mutedDark flex items-center gap-1.5">
             <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
@@ -39,7 +39,7 @@ export default function Status({ workspaceUid }) {
           </span>
           <span className="font-medium text-textLight dark:text-textDark">{order.patientName}</span>
         </div>
-        <div className="flex justify-between items-center text-xs">
+        <div className="flex justify-between items-center text-[11px] sm:text-xs">
           <span className="text-mutedLight dark:text-mutedDark flex items-center gap-1.5">
             <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
@@ -48,7 +48,7 @@ export default function Status({ workspaceUid }) {
           </span>
           <span className="font-medium text-textLight dark:text-textDark">{order.product} ({order.units}x)</span>
         </div>
-        <div className="flex justify-between items-center text-xs">
+        <div className="flex justify-between items-center text-[11px] sm:text-xs">
           <span className="text-mutedLight dark:text-mutedDark flex items-center gap-1.5">
             <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
@@ -83,23 +83,23 @@ export default function Status({ workspaceUid }) {
   );
 
   return (
-    <div className="max-w-7xl mx-auto h-full flex flex-col space-y-6">
+    <div className="max-w-7xl mx-auto h-full flex flex-col space-y-4 sm:space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-base font-semibold text-textLight dark:text-textDark tracking-tight">Production Board</h2>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 flex-1 items-start">
         
-        <div className="bg-pageLight/50 dark:bg-pageDark/50 rounded-md p-4 border border-borderLight dark:border-borderDark min-h-[500px] flex flex-col">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-textLight dark:text-textDark text-sm flex items-center gap-2">
+        <div className="bg-pageLight/50 dark:bg-pageDark/50 rounded-md p-3 sm:p-4 border border-borderLight dark:border-borderDark min-h-[300px] sm:min-h-[500px] flex flex-col">
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
+            <h3 className="font-semibold text-textLight dark:text-textDark text-xs sm:text-sm flex items-center gap-2">
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
               </span>
               In Progress
             </h3>
-            <span className="bg-surfaceLight dark:bg-surfaceDark text-mutedLight dark:text-mutedDark text-xs font-bold px-2 py-0.5 rounded border border-borderLight dark:border-borderDark shadow-sm">
+            <span className="bg-surfaceLight dark:bg-surfaceDark text-mutedLight dark:text-mutedDark text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded border border-borderLight dark:border-borderDark shadow-sm">
               {isLoading ? '-' : inProgress.length}
             </span>
           </div>
@@ -112,7 +112,7 @@ export default function Status({ workspaceUid }) {
                 <SkeletonCard />
               </>
             ) : inProgress.length === 0 ? (
-              <div className="flex items-center justify-center h-32 text-sm text-mutedLight dark:text-mutedDark border-2 border-dashed border-borderLight dark:border-borderDark rounded-md">
+              <div className="flex items-center justify-center h-24 sm:h-32 text-xs sm:text-sm text-mutedLight dark:text-mutedDark border-2 border-dashed border-borderLight dark:border-borderDark rounded-md">
                 No active orders
               </div>
             ) : (
@@ -121,13 +121,13 @@ export default function Status({ workspaceUid }) {
           </div>
         </div>
 
-        <div className="bg-pageLight/50 dark:bg-pageDark/50 rounded-md p-4 border border-borderLight dark:border-borderDark min-h-[500px] flex flex-col">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-textLight dark:text-textDark text-sm flex items-center gap-2">
+        <div className="bg-pageLight/50 dark:bg-pageDark/50 rounded-md p-3 sm:p-4 border border-borderLight dark:border-borderDark min-h-[300px] sm:min-h-[500px] flex flex-col">
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
+            <h3 className="font-semibold text-textLight dark:text-textDark text-xs sm:text-sm flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-green-500"></span>
               Delivered
             </h3>
-            <span className="bg-surfaceLight dark:bg-surfaceDark text-mutedLight dark:text-mutedDark text-xs font-bold px-2 py-0.5 rounded border border-borderLight dark:border-borderDark shadow-sm">
+            <span className="bg-surfaceLight dark:bg-surfaceDark text-mutedLight dark:text-mutedDark text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded border border-borderLight dark:border-borderDark shadow-sm">
               {isLoading ? '-' : delivered.length}
             </span>
           </div>
@@ -140,7 +140,7 @@ export default function Status({ workspaceUid }) {
                 <SkeletonCard />
               </>
             ) : delivered.length === 0 ? (
-              <div className="flex items-center justify-center h-32 text-sm text-mutedLight dark:text-mutedDark border-2 border-dashed border-borderLight dark:border-borderDark rounded-md">
+              <div className="flex items-center justify-center h-24 sm:h-32 text-xs sm:text-sm text-mutedLight dark:text-mutedDark border-2 border-dashed border-borderLight dark:border-borderDark rounded-md">
                 No delivered orders yet
               </div>
             ) : (

@@ -3,7 +3,6 @@ import { useData } from '../DataContext';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell } from 'recharts';
 
 export default function Dashboard({ workspaceUid }) {
-  // 🚀 Brought in stats from Context
   const { orders, stats, isInitialLoading: isLoading } = useData();
 
   const [overdueOrders, setOverdueOrders] = useState([]);
@@ -56,12 +55,10 @@ export default function Dashboard({ workspaceUid }) {
     return new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(value || 0);
   };
 
-  // 🚀 Instantly grab all-time totals from the Ledger
   const gross = stats?.allTimeGross || 0;
   const collected = stats?.allTimeCollected || 0;
   const outstanding = Math.max(0, gross - collected);
   
-  // Calculate specific overdue money quickly from the active overdue array
   const overdueMoney = overdueOrders.reduce((sum, order) => {
      const bal = Math.max(0, (parseFloat(order.totalPrice)||0) - (parseFloat(order.payment)||0));
      return sum + bal;
@@ -143,33 +140,35 @@ export default function Dashboard({ workspaceUid }) {
     return null;
   };
 
+  // 🚀 Mobile Fix: Adjusted text sizes to prevent breaking on 2-col grids
   const StatCard = ({ title, value, icon, colorClass }) => (
-    <div className="bg-surfaceLight dark:bg-surfaceDark border border-borderLight dark:border-borderDark rounded-md shadow-sm p-4 flex flex-col transition-colors duration-200">
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-[11px] font-semibold tracking-wider text-mutedLight dark:text-mutedDark uppercase whitespace-nowrap overflow-hidden text-ellipsis mr-2">{title}</span>
+    <div className="bg-surfaceLight dark:bg-surfaceDark border border-borderLight dark:border-borderDark rounded-md shadow-sm p-3 sm:p-4 flex flex-col transition-colors duration-200">
+      <div className="flex items-center justify-between mb-2 sm:mb-3">
+        <span className="text-[10px] sm:text-[11px] font-semibold tracking-wider text-mutedLight dark:text-mutedDark uppercase whitespace-nowrap overflow-hidden text-ellipsis mr-1 sm:mr-2">{title}</span>
         <div className={`p-1.5 rounded-md shrink-0 ${colorClass}`}>
           {icon}
         </div>
       </div>
-      <div className="text-xl font-bold text-textLight dark:text-textDark tracking-tight flex items-center min-h-[28px] truncate">
-        {isLoading ? <div className="h-6 w-20 bg-pageLight dark:bg-pageDark rounded animate-pulse"></div> : value}
+      <div className="text-lg sm:text-xl font-bold text-textLight dark:text-textDark tracking-tight flex items-center min-h-[28px] truncate">
+        {isLoading ? <div className="h-6 w-16 sm:w-20 bg-pageLight dark:bg-pageDark rounded animate-pulse"></div> : value}
       </div>
     </div>
   );
 
+  // 🚀 Mobile Fix: Added min-w-[400px] and overflow-x-auto so it swipes smoothly on phones
   const JobTable = ({ title, data, page, setPage, accentClass }) => {
     const itemsPerPage = 5;
     const totalPages = Math.ceil(data.length / itemsPerPage);
     const currentData = data.slice((page - 1) * itemsPerPage, page * itemsPerPage);
 
     return (
-      <div className={`bg-surfaceLight dark:bg-surfaceDark border border-borderLight dark:border-borderDark rounded-md shadow-sm flex flex-col overflow-hidden border-t-[3px] ${accentClass}`}>
+      <div className={`bg-surfaceLight dark:bg-surfaceDark border border-borderLight dark:border-borderDark rounded-md shadow-sm flex flex-col overflow-hidden border-t-[3px] w-full ${accentClass}`}>
         <div className="px-4 py-3 border-b border-borderLight dark:border-borderDark flex items-center justify-between">
           <h3 className="text-sm font-semibold text-textLight dark:text-textDark">{title}</h3>
           <span className="text-xs font-medium bg-pageLight dark:bg-pageDark px-2 py-0.5 rounded text-mutedLight dark:text-mutedDark">{data.length} Jobs</span>
         </div>
-        <div className="overflow-x-auto flex-1 min-h-[250px]">
-          <table className="w-full text-left border-collapse">
+        <div className="overflow-x-auto w-full flex-1 min-h-[250px] custom-scrollbar">
+          <table className="w-full text-left border-collapse min-w-[400px]">
             <thead>
               <tr className="bg-pageLight/50 dark:bg-pageDark/50 border-b border-borderLight dark:border-borderDark">
                 <th className="px-4 py-2.5 text-[10px] font-bold text-mutedLight dark:text-mutedDark uppercase tracking-wider">RX No.</th>
@@ -224,13 +223,14 @@ export default function Dashboard({ workspaceUid }) {
   if (!workspaceUid) return null;
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
+    <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
 
       <div className="flex justify-between items-center">
         <h2 className="text-lg font-semibold text-textLight dark:text-textDark">Dashboard Overview</h2>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+      {/* 🚀 Mobile Fix: grid-cols-2 on smallest screens, scaling up cleanly */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
         <StatCard 
           title="Gross Revenue" 
           value={formatCurrency(gross)} 
@@ -271,11 +271,12 @@ export default function Dashboard({ workspaceUid }) {
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
         
-        <div className="lg:col-span-2 bg-surfaceLight dark:bg-surfaceDark border border-borderLight dark:border-borderDark rounded-md shadow-sm flex flex-col overflow-visible">
-          <div className="px-5 py-4 border-b border-borderLight dark:border-borderDark flex items-center justify-between">
+        {/* 🚀 Mobile Fix: Allowed XAxis labels to scale down or be hidden if necessary */}
+        <div className="lg:col-span-2 bg-surfaceLight dark:bg-surfaceDark border border-borderLight dark:border-borderDark rounded-md shadow-sm flex flex-col overflow-x-auto w-full">
+          <div className="px-4 sm:px-5 py-4 border-b border-borderLight dark:border-borderDark flex items-center justify-between">
             <h3 className="text-base font-semibold text-textLight dark:text-textDark">Daily Revenue Overview</h3>
           </div>
-          <div className="p-5 h-[340px]">
+          <div className="p-2 sm:p-5 h-[280px] sm:h-[340px] min-w-[400px]">
             {isLoading ? (
               <div className="w-full h-full animate-pulse bg-pageLight dark:bg-pageDark rounded border border-borderLight dark:border-borderDark"></div>
             ) : chartData.length === 0 ? (
@@ -284,10 +285,10 @@ export default function Dashboard({ workspaceUid }) {
               </div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" opacity={0.5} />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#9ca3af', fontSize: 12 }} dy={10} minTickGap={20} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fill: '#9ca3af', fontSize: 12 }} tickFormatter={(value) => `₱${(value/1000)}k`} dx={-10} />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#9ca3af', fontSize: 10 }} dy={10} minTickGap={15} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fill: '#9ca3af', fontSize: 10 }} tickFormatter={(value) => `₱${(value/1000)}k`} dx={0} />
                   <Tooltip content={<TablerTooltip />} cursor={{ stroke: '#9ca3af', strokeWidth: 1, strokeDasharray: '3 3' }} />
                   <Area type="monotone" name="Gross" dataKey="gross" stroke="#206bc4" strokeWidth={2} fillOpacity={0.16} fill="#206bc4" activeDot={{ r: 5, fill: "#206bc4", stroke: "#fff", strokeWidth: 2 }} />
                   <Area type="monotone" name="Collected" dataKey="collected" stroke="#74c0fc" strokeWidth={2} fillOpacity={0.16} fill="#74c0fc" activeDot={{ r: 5, fill: "#74c0fc", stroke: "#fff", strokeWidth: 2 }} />
@@ -298,10 +299,10 @@ export default function Dashboard({ workspaceUid }) {
         </div>
 
         <div className="lg:col-span-1 bg-surfaceLight dark:bg-surfaceDark border border-borderLight dark:border-borderDark rounded-md shadow-sm flex flex-col overflow-visible">
-          <div className="px-5 py-4 border-b border-borderLight dark:border-borderDark">
+          <div className="px-4 sm:px-5 py-4 border-b border-borderLight dark:border-borderDark">
             <h3 className="text-base font-semibold text-textLight dark:text-textDark">Revenue Distribution</h3>
           </div>
-          <div className="p-5 flex-1 flex flex-col">
+          <div className="p-4 sm:p-5 flex-1 flex flex-col">
             {isLoading ? (
               <div className="w-full h-full animate-pulse bg-pageLight dark:bg-pageDark rounded border border-borderLight dark:border-borderDark min-h-[250px]"></div>
             ) : pieData.length === 0 ? (
@@ -310,7 +311,7 @@ export default function Dashboard({ workspaceUid }) {
               </div>
             ) : (
               <>
-                <div className="relative h-[220px] w-full flex items-center justify-center mt-2 mb-4">
+                <div className="relative h-[200px] sm:h-[220px] w-full flex items-center justify-center mt-2 mb-4">
                   <div className="w-full h-full relative z-10">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
@@ -335,9 +336,9 @@ export default function Dashboard({ workspaceUid }) {
                   </div>
                 </div>
                 
-                <div className="mt-auto flex flex-wrap justify-center gap-x-4 gap-y-2 pb-1">
+                <div className="mt-auto flex flex-wrap justify-center gap-x-3 gap-y-2 pb-1">
                   {pieData.map((entry, index) => (
-                     <div key={index} className="flex items-center gap-1.5 text-xs">
+                     <div key={index} className="flex items-center gap-1.5 text-[11px] sm:text-xs">
                        <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: entry.color }}></span>
                        <span className="text-mutedLight dark:text-mutedDark">{entry.name}</span>
                      </div>
@@ -349,10 +350,10 @@ export default function Dashboard({ workspaceUid }) {
         </div>
 
         <div className="lg:col-span-1 bg-surfaceLight dark:bg-surfaceDark border border-borderLight dark:border-borderDark rounded-md shadow-sm flex flex-col overflow-visible">
-          <div className="px-5 py-4 border-b border-borderLight dark:border-borderDark">
+          <div className="px-4 sm:px-5 py-4 border-b border-borderLight dark:border-borderDark">
             <h3 className="text-base font-semibold text-textLight dark:text-textDark">Top Products</h3>
           </div>
-          <div className="p-5 flex-1 flex flex-col">
+          <div className="p-4 sm:p-5 flex-1 flex flex-col">
             {isLoading ? (
               <div className="w-full h-full animate-pulse bg-pageLight dark:bg-pageDark rounded border border-borderLight dark:border-borderDark min-h-[250px]"></div>
             ) : productPieData.length === 0 ? (
@@ -361,7 +362,7 @@ export default function Dashboard({ workspaceUid }) {
               </div>
             ) : (
               <>
-                <div className="relative h-[220px] w-full flex items-center justify-center mt-2 mb-4">
+                <div className="relative h-[200px] sm:h-[220px] w-full flex items-center justify-center mt-2 mb-4">
                   <div className="w-full h-full relative z-10">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
@@ -386,9 +387,9 @@ export default function Dashboard({ workspaceUid }) {
                   </div>
                 </div>
                 
-                <div className="mt-auto flex flex-wrap justify-center gap-x-4 gap-y-2 pb-1">
+                <div className="mt-auto flex flex-wrap justify-center gap-x-3 gap-y-2 pb-1">
                   {productPieData.map((entry, index) => (
-                     <div key={index} className="flex items-center gap-1.5 text-xs">
+                     <div key={index} className="flex items-center gap-1.5 text-[11px] sm:text-xs">
                        <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: entry.color }}></span>
                        <span className="text-mutedLight dark:text-mutedDark">{entry.name}</span>
                      </div>

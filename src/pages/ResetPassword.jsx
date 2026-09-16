@@ -23,7 +23,6 @@ export default function ResetPassword() {
       return;
     }
 
-    // Verify the token immediately when the page loads
     verifyPasswordResetCode(auth, oobCode)
       .then((email) => {
         setUserEmail(email);
@@ -58,24 +57,24 @@ export default function ResetPassword() {
     }
   };
 
-  const inputClass = "w-full pl-10 pr-3 py-2 text-sm bg-white dark:bg-[#182433] border border-gray-300 dark:border-[#3a4859] rounded text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-colors shadow-sm";
+  const inputClass = "w-full pl-10 pr-3 py-2.5 sm:py-2 text-sm bg-white dark:bg-[#182433] border border-gray-300 dark:border-[#3a4859] rounded text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-colors shadow-sm";
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-pageLight dark:bg-pageDark p-4 font-sans transition-colors duration-200">
+    <div className="min-h-screen flex items-center justify-center bg-pageLight dark:bg-pageDark p-4 sm:p-6 font-sans transition-colors duration-200">
       <div className="w-full max-w-sm animate-in fade-in slide-in-from-bottom-4">
         
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-md bg-primary flex items-center justify-center text-white font-bold text-xl shadow-sm">D</div>
-            <span className="text-2xl font-bold text-textLight dark:text-textDark tracking-tight">Fano Laboratory System</span>
+        <div className="text-center mb-6 sm:mb-8">
+          <div className="flex items-center justify-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-md bg-primary flex items-center justify-center text-white font-bold text-lg sm:text-xl shadow-sm">D</div>
+            <span className="text-xl sm:text-2xl font-bold text-textLight dark:text-textDark tracking-tight">DentalLab Pro</span>
           </div>
-          <h2 className="text-base font-semibold text-textLight dark:text-textDark">Create New Password</h2>
+          <h2 className="text-sm sm:text-base font-semibold text-textLight dark:text-textDark">Create New Password</h2>
         </div>
 
-        <div className="bg-surfaceLight dark:bg-surfaceDark border border-borderLight dark:border-borderDark rounded-md shadow-sm p-6 sm:p-8">
+        <div className="bg-surfaceLight dark:bg-surfaceDark border border-borderLight dark:border-borderDark rounded-md shadow-sm p-5 sm:p-8">
           
           {error && (
-            <div className="mb-4 px-3 py-2 text-sm rounded bg-red-50 text-red-700 border border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-900/30 flex items-center gap-2">
+            <div className="mb-4 px-3 py-2 text-xs sm:text-sm rounded bg-red-50 text-red-700 border border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-900/30 flex items-center gap-2">
               <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line>
               </svg>
@@ -84,7 +83,7 @@ export default function ResetPassword() {
           )}
 
           {message && (
-            <div className="mb-4 px-3 py-2 text-sm rounded bg-green-50 text-green-700 border border-green-200 dark:bg-green-500/10 dark:text-green-400 dark:border-green-900/30 flex items-center gap-2">
+            <div className="mb-4 px-3 py-2 text-xs sm:text-sm rounded bg-green-50 text-green-700 border border-green-200 dark:bg-green-500/10 dark:text-green-400 dark:border-green-900/30 flex items-center gap-2">
               <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M5 12l5 5l10 -10"></path>
               </svg>
@@ -93,11 +92,11 @@ export default function ResetPassword() {
           )}
 
           {isValidating ? (
-            <div className="text-center text-sm text-mutedLight dark:text-mutedDark py-4">Validating secure link...</div>
+            <div className="text-center text-xs sm:text-sm text-mutedLight dark:text-mutedDark py-4">Validating secure link...</div>
           ) : !error && !message ? (
             <form onSubmit={handleResetPassword} className="space-y-4 animate-in fade-in">
-              <div className="text-sm text-mutedLight dark:text-mutedDark mb-4">
-                Resetting password for: <strong className="text-textLight dark:text-textDark">{userEmail}</strong>
+              <div className="text-xs sm:text-sm text-mutedLight dark:text-mutedDark mb-4 text-center sm:text-left">
+                Resetting password for:<br/> <strong className="text-textLight dark:text-textDark">{userEmail}</strong>
               </div>
 
               <div>
@@ -118,14 +117,14 @@ export default function ResetPassword() {
               </div>
 
               <div className="pt-2">
-                <button type="submit" disabled={isLoading} className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-primary text-white text-sm font-medium rounded-md hover:bg-primaryHover transition-colors shadow-sm disabled:opacity-50">
+                <button type="submit" disabled={isLoading} className="w-full flex items-center justify-center gap-2 px-4 py-2.5 sm:py-2 bg-primary text-white text-sm font-medium rounded-md hover:bg-primaryHover transition-colors shadow-sm disabled:opacity-50">
                   {isLoading ? 'Saving...' : 'Save New Password'}
                 </button>
               </div>
             </form>
           ) : (
             <div className="pt-4">
-              <button onClick={() => navigate('/')} className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-surfaceLight dark:bg-surfaceDark border border-borderLight dark:border-borderDark text-textLight dark:text-textDark text-sm font-medium rounded-md hover:bg-pageLight dark:hover:bg-pageDark transition-colors shadow-sm">
+              <button onClick={() => navigate('/')} className="w-full flex items-center justify-center gap-2 px-4 py-2.5 sm:py-2 bg-surfaceLight dark:bg-surfaceDark border border-borderLight dark:border-borderDark text-textLight dark:text-textDark text-sm font-medium rounded-md hover:bg-pageLight dark:hover:bg-pageDark transition-colors shadow-sm">
                 Return to Login
               </button>
             </div>

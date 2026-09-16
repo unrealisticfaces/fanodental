@@ -421,64 +421,71 @@ export default function Records({ workspaceUid, userProfile }) {
   if (!workspaceUid) return null;
 
   return (
-    <div className="max-w-7xl mx-auto">
+    <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
+      
+      {deepSearchResults && (
+        <div className="px-4 sm:px-5 py-2.5 bg-indigo-50 border border-indigo-100 rounded-md dark:bg-indigo-900/20 dark:border-indigo-800/30 flex items-center justify-between text-xs sm:text-sm text-indigo-700 dark:text-indigo-300 shadow-sm animate-in fade-in">
+          <span><strong>Deep Search Mode Active.</strong> Showing historical results for "{searchTerm}".</span>
+        </div>
+      )}
+
       <div className="bg-surfaceLight dark:bg-surfaceDark border border-borderLight dark:border-borderDark rounded-md shadow-sm flex flex-col overflow-visible transition-colors duration-200">
         
-        <div className="px-5 py-4 border-b border-borderLight dark:border-borderDark flex flex-col xl:flex-row xl:items-center justify-between gap-4">
-          <h2 className="text-base font-semibold text-textLight dark:text-textDark whitespace-nowrap">
+        <div className="px-4 sm:px-5 py-4 border-b border-borderLight dark:border-borderDark flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+          <h2 className="text-base font-semibold text-textLight dark:text-textDark whitespace-nowrap hidden xl:block">
             Laboratory Records
           </h2>
           
-          <div className="flex flex-col sm:flex-row gap-4 w-full xl:w-auto items-center">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full xl:w-auto items-start sm:items-center justify-between">
             
-            <div className="flex items-center gap-2 text-sm text-mutedLight dark:text-mutedDark">
-              <span>Show</span>
-              <select value={productFilter} onChange={(e) => setProductFilter(e.target.value)} className="w-24 px-2.5 py-1.5 text-sm bg-white dark:bg-[#182433] border border-gray-300 dark:border-[#3a4859] rounded text-gray-900 dark:text-white focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-colors shadow-sm">
-                <option value="All">All</option>
-                <option value="PFM">PFM</option>
-                <option value="Zirconia">Zirconia</option>
-                <option value="Zirconia Coping">Zirconia Coping</option>
-                <option value="Emax">Emax</option>
-                <option value="HC">HC</option>
-                <option value="3D Printing">3D Printing</option>
-                <option value="Temporary Crown">Temporary Crown</option>
-                <option value="Flexible Denture">Flexible Denture</option>
-                <option value="Valplast Denture">Valplast Denture</option>
-                <option value="Ordinary Denture">Ordinary Denture</option>
-                <option value="Clear/Essex Retainer">Clear/Essex Retainer</option>
-              </select>
-              <span>entries</span>
-            </div>
-            <div className="flex items-center gap-2 text-sm text-mutedLight dark:text-mutedDark sm:ml-4">
-              <span>Status:</span>
-              <select value={paymentFilter} onChange={(e) => setPaymentFilter(e.target.value)} className="w-32 px-2.5 py-1.5 text-sm bg-white dark:bg-[#182433] border border-gray-300 dark:border-[#3a4859] rounded text-gray-900 dark:text-white focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-colors shadow-sm">
-                <option value="All">All</option><option value="Unpaid">Unpaid</option><option value="Partial">Partial</option><option value="Fully Paid">Paid</option>
-              </select>
+            <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+              <div className="flex items-center gap-2 text-sm text-mutedLight dark:text-mutedDark">
+                <span className="hidden sm:inline">Show</span>
+                <select value={productFilter} onChange={(e) => setProductFilter(e.target.value)} className={`${inputClass} w-24 sm:w-28`}>
+                  <option value="All">All</option>
+                  <option value="PFM">PFM</option>
+                  <option value="Zirconia">Zirconia</option>
+                  <option value="Zirconia Coping">Zirconia Coping</option>
+                  <option value="Emax">Emax</option>
+                  <option value="HC">HC</option>
+                  <option value="3D Printing">3D Printing</option>
+                  <option value="Temporary Crown">Temporary Crown</option>
+                  <option value="Flexible Denture">Flexible Denture</option>
+                  <option value="Valplast Denture">Valplast Denture</option>
+                  <option value="Ordinary Denture">Ordinary Denture</option>
+                  <option value="Clear/Essex Retainer">Clear/Essex Retainer</option>
+                </select>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-mutedLight dark:text-mutedDark">
+                <span className="hidden sm:inline">Status:</span>
+                <select value={paymentFilter} onChange={(e) => setPaymentFilter(e.target.value)} className={`${inputClass} w-24 sm:w-32`}>
+                  <option value="All">All</option><option value="Unpaid">Unpaid</option><option value="Partial">Partial</option><option value="Fully Paid">Paid</option>
+                </select>
+              </div>
             </div>
             
-            <div className="flex items-center gap-2 text-sm text-mutedLight dark:text-mutedDark sm:ml-4">
-              <span>Search:</span>
-              <div className="flex items-center gap-2">
-                <div className="relative w-48">
-                  <input 
-                    type="text" 
-                    value={searchTerm} 
-                    onChange={(e) => setSearchTerm(e.target.value)} 
-                    disabled={deepSearchResults !== null}
-                    placeholder="RX, Name, Dentist..." 
-                    className={`block w-full px-3 py-1.5 pl-8 text-sm bg-white dark:bg-[#182433] border border-gray-300 dark:border-[#3a4859] rounded text-gray-900 dark:text-white focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-colors shadow-sm ${deepSearchResults ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  />
-                  <svg xmlns="http://www.w3.org/2000/svg" className="absolute left-2.5 top-2 h-4 w-4 text-gray-400 dark:text-gray-500" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" /></svg>
-                </div>
-                
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+              <div className="relative w-full sm:w-56">
+                <input 
+                  type="text" 
+                  value={searchTerm} 
+                  onChange={(e) => setSearchTerm(e.target.value)} 
+                  disabled={deepSearchResults !== null}
+                  placeholder="RX, Name, Dentist..." 
+                  className={`block w-full px-3 py-1.5 pl-8 text-sm bg-white dark:bg-[#182433] border border-gray-300 dark:border-[#3a4859] rounded text-gray-900 dark:text-white focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-colors shadow-sm ${deepSearchResults ? 'opacity-50 cursor-not-allowed' : ''}`}
+                />
+                <svg xmlns="http://www.w3.org/2000/svg" className="absolute left-2.5 top-2 h-4 w-4 text-gray-400 dark:text-gray-500" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" /></svg>
+              </div>
+              
+              <div className="flex gap-2 w-full sm:w-auto">
                 {searchTerm.trim() !== '' && !deepSearchResults && (
-                  <button onClick={handleDeepSearch} disabled={isDeepSearching} className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded shadow-sm hover:bg-indigo-700 transition-colors whitespace-nowrap disabled:opacity-50">
-                    {isDeepSearching ? 'Searching...' : 'Deep Search Server'}
+                  <button onClick={handleDeepSearch} disabled={isDeepSearching} className="flex-1 sm:flex-none px-3 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded shadow-sm hover:bg-indigo-700 transition-colors whitespace-nowrap disabled:opacity-50 text-center">
+                    {isDeepSearching ? 'Searching...' : 'Deep Search'}
                   </button>
                 )}
                 
                 {deepSearchResults && (
-                  <button onClick={clearDeepSearch} className="px-3 py-1.5 bg-red-50 text-red-600 border border-red-200 dark:bg-red-900/30 dark:border-red-800 dark:text-red-400 text-xs font-bold rounded shadow-sm hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors whitespace-nowrap">
+                  <button onClick={clearDeepSearch} className="flex-1 sm:flex-none px-3 py-1.5 bg-red-50 text-red-600 border border-red-200 dark:bg-red-900/30 dark:border-red-800 dark:text-red-400 text-xs font-bold rounded shadow-sm hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors whitespace-nowrap text-center">
                     Clear Search
                   </button>
                 )}
@@ -488,72 +495,67 @@ export default function Records({ workspaceUid, userProfile }) {
           </div>
         </div>
 
-        {deepSearchResults && (
-          <div className="px-5 py-2.5 bg-indigo-50 border-b border-indigo-100 dark:bg-indigo-900/20 dark:border-indigo-800/30 flex items-center justify-between text-sm text-indigo-700 dark:text-indigo-300">
-            <span><strong>Deep Search Mode Active.</strong> Showing historical server results for "{searchTerm}".</span>
-          </div>
-        )}
-
-        <div className="overflow-visible min-h-[400px]">
-          <table className="w-full text-left border-collapse">
+        {/* 🚀 Mobile Fix: Horizontal scrolling wrapper for large table */}
+        <div className="overflow-x-auto w-full min-h-[400px] pb-24">
+          <table className="w-full text-left border-collapse min-w-[900px]">
             <thead>
               <tr className="bg-surfaceLight dark:bg-surfaceDark border-b border-borderLight dark:border-borderDark">
-                <th className="px-5 py-2.5 text-xs font-semibold text-mutedLight dark:text-mutedDark uppercase tracking-wider">RX No.</th>
-                <th className="px-5 py-2.5 text-xs font-semibold text-mutedLight dark:text-mutedDark uppercase tracking-wider">Product & Details</th>
-                <th className="px-5 py-2.5 text-xs font-semibold text-mutedLight dark:text-mutedDark uppercase tracking-wider text-center">Units</th>
-                <th className="px-5 py-2.5 text-xs font-semibold text-mutedLight dark:text-mutedDark uppercase tracking-wider">Dentist</th>
-                <th className="px-5 py-2.5 text-xs font-semibold text-mutedLight dark:text-mutedDark uppercase tracking-wider">Technician</th>
-                <th className="px-5 py-2.5 text-xs font-semibold text-mutedLight dark:text-mutedDark uppercase tracking-wider">Payment Status</th>
-                <th className="px-5 py-2.5 text-xs font-semibold text-mutedLight dark:text-mutedDark uppercase tracking-wider">Job Status</th>
-                <th className="px-5 py-2.5"></th>
+                <th className="px-4 sm:px-5 py-2.5 text-[10px] sm:text-xs font-semibold text-mutedLight dark:text-mutedDark uppercase tracking-wider">RX No.</th>
+                <th className="px-4 sm:px-5 py-2.5 text-[10px] sm:text-xs font-semibold text-mutedLight dark:text-mutedDark uppercase tracking-wider">Product & Details</th>
+                <th className="px-4 sm:px-5 py-2.5 text-[10px] sm:text-xs font-semibold text-mutedLight dark:text-mutedDark uppercase tracking-wider text-center">Units</th>
+                <th className="px-4 sm:px-5 py-2.5 text-[10px] sm:text-xs font-semibold text-mutedLight dark:text-mutedDark uppercase tracking-wider">Dentist</th>
+                <th className="px-4 sm:px-5 py-2.5 text-[10px] sm:text-xs font-semibold text-mutedLight dark:text-mutedDark uppercase tracking-wider">Technician</th>
+                <th className="px-4 sm:px-5 py-2.5 text-[10px] sm:text-xs font-semibold text-mutedLight dark:text-mutedDark uppercase tracking-wider">Payment Status</th>
+                <th className="px-4 sm:px-5 py-2.5 text-[10px] sm:text-xs font-semibold text-mutedLight dark:text-mutedDark uppercase tracking-wider">Job Status</th>
+                <th className="px-4 sm:px-5 py-2.5"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-borderLight dark:divide-borderDark">
               {isLoading && !isDeepSearching ? (
                 Array(5).fill(0).map((_, i) => (
                   <tr key={i} className="animate-pulse bg-surfaceLight dark:bg-surfaceDark">
-                    <td className="px-5 py-4"><div className="h-4 bg-pageLight dark:bg-pageDark rounded w-16"></div></td>
-                    <td className="px-5 py-4"><div className="h-4 bg-pageLight dark:bg-pageDark rounded w-24 mb-1"></div><div className="h-3 bg-pageLight dark:bg-pageDark rounded w-32"></div></td>
-                    <td className="px-5 py-4"><div className="h-4 bg-pageLight dark:bg-pageDark rounded w-10 mx-auto"></div></td>
-                    <td className="px-5 py-4"><div className="h-4 bg-pageLight dark:bg-pageDark rounded w-32"></div></td>
-                    <td className="px-5 py-4"><div className="h-4 bg-pageLight dark:bg-pageDark rounded w-24"></div></td>
-                    <td className="px-5 py-4"><div className="h-4 bg-pageLight dark:bg-pageDark rounded w-16"></div></td>
-                    <td className="px-5 py-4"><div className="h-4 bg-pageLight dark:bg-pageDark rounded w-16"></div></td>
-                    <td className="px-5 py-4 flex justify-end"><div className="h-6 bg-pageLight dark:bg-pageDark rounded w-20"></div></td>
+                    <td className="px-4 sm:px-5 py-4"><div className="h-4 bg-pageLight dark:bg-pageDark rounded w-16"></div></td>
+                    <td className="px-4 sm:px-5 py-4"><div className="h-4 bg-pageLight dark:bg-pageDark rounded w-24 mb-1"></div><div className="h-3 bg-pageLight dark:bg-pageDark rounded w-32"></div></td>
+                    <td className="px-4 sm:px-5 py-4"><div className="h-4 bg-pageLight dark:bg-pageDark rounded w-10 mx-auto"></div></td>
+                    <td className="px-4 sm:px-5 py-4"><div className="h-4 bg-pageLight dark:bg-pageDark rounded w-32"></div></td>
+                    <td className="px-4 sm:px-5 py-4"><div className="h-4 bg-pageLight dark:bg-pageDark rounded w-24"></div></td>
+                    <td className="px-4 sm:px-5 py-4"><div className="h-4 bg-pageLight dark:bg-pageDark rounded w-16"></div></td>
+                    <td className="px-4 sm:px-5 py-4"><div className="h-4 bg-pageLight dark:bg-pageDark rounded w-16"></div></td>
+                    <td className="px-4 sm:px-5 py-4 flex justify-end"><div className="h-6 bg-pageLight dark:bg-pageDark rounded w-20"></div></td>
                   </tr>
                 ))
               ) : currentOrders.length === 0 ? (
                 <tr>
-                  <td colSpan="8" className="px-5 py-8 text-center text-mutedLight dark:text-mutedDark text-sm">
+                  <td colSpan="8" className="px-4 sm:px-5 py-8 text-center text-mutedLight dark:text-mutedDark text-sm">
                     {isDeepSearching ? 'Searching database...' : 'No orders found.'}
                   </td>
                 </tr>
               ) : (
                 currentOrders.map((order) => (
                   <tr key={order.id} className="hover:bg-pageLight dark:hover:bg-pageDark transition-colors">
-                    <td className="px-5 py-3 text-sm text-mutedLight dark:text-mutedDark whitespace-nowrap">{order.rxNumber}</td>
-                    <td className="px-5 py-3">
+                    <td className="px-4 sm:px-5 py-3 text-sm text-mutedLight dark:text-mutedDark whitespace-nowrap">{order.rxNumber}</td>
+                    <td className="px-4 sm:px-5 py-3">
                       <span className="text-sm text-textLight dark:text-textDark font-medium block">{order.product}</span>
                       {order.descriptions && (
-                        <span className="text-[11px] text-mutedLight dark:text-mutedDark block mt-0.5 truncate max-w-[200px]" title={order.descriptions}>
+                        <span className="text-[11px] text-mutedLight dark:text-mutedDark block mt-0.5 truncate max-w-[180px] sm:max-w-[200px]" title={order.descriptions}>
                           Desc: {order.descriptions}
                         </span>
                       )}
                     </td>
-                    <td className="px-5 py-3 text-sm text-mutedLight dark:text-mutedDark whitespace-nowrap text-center">{order.units || '-'}</td>
-                    <td className="px-5 py-3 text-sm text-textLight dark:text-textDark whitespace-nowrap">{order.dentistName}</td>
-                    <td className="px-5 py-3 text-sm text-textLight dark:text-textDark whitespace-nowrap">{order.techIncharge || 'Unassigned'}</td>
-                    <td className="px-5 py-3 text-sm whitespace-nowrap align-middle">
-                      <span className={`inline-flex items-center px-2 py-1 rounded text-[11px] font-bold uppercase tracking-wider w-fit ${
+                    <td className="px-4 sm:px-5 py-3 text-sm text-mutedLight dark:text-mutedDark whitespace-nowrap text-center">{order.units || '-'}</td>
+                    <td className="px-4 sm:px-5 py-3 text-sm text-textLight dark:text-textDark whitespace-nowrap">{order.dentistName}</td>
+                    <td className="px-4 sm:px-5 py-3 text-sm text-textLight dark:text-textDark whitespace-nowrap">{order.techIncharge || 'Unassigned'}</td>
+                    <td className="px-4 sm:px-5 py-3 text-sm whitespace-nowrap align-middle">
+                      <span className={`inline-flex items-center px-2 py-1 rounded text-[10px] sm:text-[11px] font-bold uppercase tracking-wider w-fit ${
                         order.payType === 'Fully Paid' ? 'text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/30' : order.payType === 'Partial' ? 'text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30' : 'text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/30'
                       }`}>{order.payType || 'Unpaid'}</span>
                     </td>
-                    <td className="px-5 py-3 text-sm whitespace-nowrap align-middle">
-                      <span className={`inline-flex items-center px-2 py-1 rounded text-[11px] font-bold uppercase tracking-wider w-fit ${
+                    <td className="px-4 sm:px-5 py-3 text-sm whitespace-nowrap align-middle">
+                      <span className={`inline-flex items-center px-2 py-1 rounded text-[10px] sm:text-[11px] font-bold uppercase tracking-wider w-fit ${
                         order.initialStatus === 'Delivered' ? 'text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/30' : 'text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30'
                       }`}>{order.initialStatus}</span>
                     </td>
-                    <td className="px-5 py-3 text-right whitespace-nowrap relative">
+                    <td className="px-4 sm:px-5 py-3 text-right whitespace-nowrap relative">
                       <button 
                         onClick={(e) => {
                           e.stopPropagation();
@@ -567,16 +569,16 @@ export default function Records({ workspaceUid, userProfile }) {
 
                       {openDropdownId === order.id && (
                         <div className="absolute right-6 top-10 mt-1 w-44 bg-surfaceLight dark:bg-surfaceDark border border-borderLight dark:border-borderDark rounded shadow-lg z-50 flex flex-col text-left py-1">
-                          <button onClick={(e) => { e.stopPropagation(); handleViewDetailsClick(order); setOpenDropdownId(null); }} className="w-full text-left px-3 py-1.5 text-sm text-textLight dark:text-textDark hover:bg-pageLight dark:hover:bg-pageDark transition-colors font-medium">
+                          <button onClick={(e) => { e.stopPropagation(); handleViewDetailsClick(order); setOpenDropdownId(null); }} className="w-full text-left px-3 py-2 text-sm text-textLight dark:text-textDark hover:bg-pageLight dark:hover:bg-pageDark transition-colors font-medium">
                             View Details
                           </button>
                           <div className="h-px bg-borderLight dark:bg-borderDark w-full my-1"></div>
                           {canEdit && (
                             <>
-                              <button onClick={(e) => { e.stopPropagation(); handleEditInfoClick(order); setOpenDropdownId(null); }} className="w-full text-left px-3 py-1.5 text-sm text-textLight dark:text-textDark hover:bg-pageLight dark:hover:bg-pageDark transition-colors">
+                              <button onClick={(e) => { e.stopPropagation(); handleEditInfoClick(order); setOpenDropdownId(null); }} className="w-full text-left px-3 py-2 text-sm text-textLight dark:text-textDark hover:bg-pageLight dark:hover:bg-pageDark transition-colors">
                                 Update Information
                               </button>
-                              <button onClick={(e) => { e.stopPropagation(); handleEditPaymentClick(order); setOpenDropdownId(null); }} className="w-full text-left px-3 py-1.5 text-sm text-textLight dark:text-textDark hover:bg-pageLight dark:hover:bg-pageDark transition-colors">
+                              <button onClick={(e) => { e.stopPropagation(); handleEditPaymentClick(order); setOpenDropdownId(null); }} className="w-full text-left px-3 py-2 text-sm text-textLight dark:text-textDark hover:bg-pageLight dark:hover:bg-pageDark transition-colors">
                                 Update Payment
                               </button>
                             </>
@@ -584,8 +586,8 @@ export default function Records({ workspaceUid, userProfile }) {
                           {canDelete && (
                             <>
                               <div className="h-px bg-borderLight dark:bg-borderDark w-full my-1"></div>
-                              <button onClick={(e) => { e.stopPropagation(); setOrderToDelete(order); setOpenDropdownId(null); }} className="w-full text-left px-3 py-1.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
-                                Delete
+                              <button onClick={(e) => { e.stopPropagation(); setOrderToDelete(order); setOpenDropdownId(null); }} className="w-full text-left px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+                                Delete Order
                               </button>
                             </>
                           )}
@@ -600,14 +602,14 @@ export default function Records({ workspaceUid, userProfile }) {
         </div>
         
         {!isLoading && filteredOrders.length > 0 && (
-          <div className="px-5 py-3 border-t border-borderLight dark:border-borderDark flex items-center justify-between text-sm text-mutedLight dark:text-mutedDark bg-surfaceLight dark:bg-surfaceDark rounded-b-md">
-            <span>Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredOrders.length)} of {filteredOrders.length} entries</span>
+          <div className="px-4 sm:px-5 py-3 border-t border-borderLight dark:border-borderDark flex items-center justify-between text-xs sm:text-sm text-mutedLight dark:text-mutedDark bg-surfaceLight dark:bg-surfaceDark rounded-b-md">
+            <span>Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredOrders.length)} of {filteredOrders.length}</span>
             
             <div className="flex items-center gap-1">
               <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="px-2 py-1 hover:text-textLight dark:hover:text-textDark disabled:opacity-50">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
               </button>
-              <button className="w-7 h-7 flex items-center justify-center rounded bg-primary text-white text-sm font-medium shadow-sm">{currentPage}</button>
+              <button className="w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center rounded bg-primary text-white text-xs sm:text-sm font-medium shadow-sm">{currentPage}</button>
               <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages === 0} className="px-2 py-1 hover:text-textLight dark:hover:text-textDark disabled:opacity-50">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" /></svg>
               </button>
@@ -616,41 +618,45 @@ export default function Records({ workspaceUid, userProfile }) {
         )}
       </div>
 
+      {/* 🚀 Mobile Fix: Full height scrolling modals for better mobile visibility */}
       {isViewModalOpen && selectedOrder && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-          <div className="bg-surfaceLight dark:bg-surfaceDark border border-borderLight dark:border-borderDark rounded-md shadow-xl w-full max-w-3xl flex flex-col max-h-[90vh] animate-in fade-in">
-            <div className="px-6 py-4 border-b border-borderLight dark:border-borderDark flex items-center justify-between bg-pageLight/30 dark:bg-pageDark/30">
-              <div className="flex items-center gap-4">
-                <h3 className="text-lg font-bold text-textLight dark:text-textDark">RX: {selectedOrder.rxNumber}</h3>
-                <span className={`px-2.5 py-1 rounded text-[11px] font-bold uppercase tracking-wider ${
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 sm:p-6">
+          <div className="bg-surfaceLight dark:bg-surfaceDark border border-borderLight dark:border-borderDark rounded-md shadow-xl w-full max-w-3xl flex flex-col max-h-[95vh] sm:max-h-[90vh] animate-in fade-in">
+            <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-borderLight dark:border-borderDark flex items-center justify-between bg-pageLight/30 dark:bg-pageDark/30">
+              <div className="flex items-center gap-3 sm:gap-4">
+                <h3 className="text-base sm:text-lg font-bold text-textLight dark:text-textDark">RX: {selectedOrder.rxNumber}</h3>
+                <span className={`px-2 py-0.5 sm:px-2.5 sm:py-1 rounded text-[10px] sm:text-[11px] font-bold uppercase tracking-wider ${
                   selectedOrder.initialStatus === 'Delivered' ? 'text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/30' : 'text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30'
                 }`}>{selectedOrder.initialStatus}</span>
               </div>
-              <button onClick={() => setIsViewModalOpen(false)} className="text-mutedLight dark:text-mutedDark hover:text-textLight dark:hover:text-textDark">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
+              <button onClick={() => setIsViewModalOpen(false)} className="text-mutedLight dark:text-mutedDark hover:text-textLight dark:hover:text-textDark p-1">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 sm:h-6 sm:w-6" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
               </button>
             </div>
             
-            <div className="overflow-y-auto p-6 flex-1 space-y-6">
-              
+            <div className="overflow-y-auto p-4 sm:p-6 flex-1 space-y-6 custom-scrollbar">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
                 <div>
                   <h4 className="text-[11px] font-semibold text-mutedLight dark:text-mutedDark uppercase tracking-wider border-b border-borderLight dark:border-borderDark pb-1 mb-3">General Information</h4>
                   <div className="space-y-3">
-                    <div><span className="text-xs text-mutedLight dark:text-mutedDark block">Patient Name</span><p className="font-medium text-sm text-textLight dark:text-textDark">{selectedOrder.patientName || '-'}</p></div>
-                    <div><span className="text-xs text-mutedLight dark:text-mutedDark block">Dentist Name</span><p className="font-medium text-sm text-textLight dark:text-textDark">{selectedOrder.dentistName || '-'}</p></div>
-                    <div><span className="text-xs text-mutedLight dark:text-mutedDark block">Date Received</span><p className="font-medium text-sm text-textLight dark:text-textDark">{selectedOrder.dateReceived || '-'}</p></div>
-                    <div><span className="text-xs text-mutedLight dark:text-mutedDark block">Due Date</span><p className="font-medium text-sm text-textLight dark:text-textDark">{selectedOrder.dueDate || '-'}</p></div>
+                    <div><span className="text-[10px] sm:text-xs text-mutedLight dark:text-mutedDark block">Patient Name</span><p className="font-medium text-sm text-textLight dark:text-textDark">{selectedOrder.patientName || '-'}</p></div>
+                    <div><span className="text-[10px] sm:text-xs text-mutedLight dark:text-mutedDark block">Dentist Name</span><p className="font-medium text-sm text-textLight dark:text-textDark">{selectedOrder.dentistName || '-'}</p></div>
+                    <div className="grid grid-cols-2 gap-2">
+                       <div><span className="text-[10px] sm:text-xs text-mutedLight dark:text-mutedDark block">Date Received</span><p className="font-medium text-sm text-textLight dark:text-textDark">{selectedOrder.dateReceived || '-'}</p></div>
+                       <div><span className="text-[10px] sm:text-xs text-mutedLight dark:text-mutedDark block">Due Date</span><p className="font-medium text-sm text-textLight dark:text-textDark">{selectedOrder.dueDate || '-'}</p></div>
+                    </div>
                   </div>
                 </div>
 
                 <div>
                   <h4 className="text-[11px] font-semibold text-mutedLight dark:text-mutedDark uppercase tracking-wider border-b border-borderLight dark:border-borderDark pb-1 mb-3">Technical Specifications</h4>
                   <div className="space-y-3">
-                    <div><span className="text-xs text-mutedLight dark:text-mutedDark block">Product</span><p className="font-medium text-sm text-textLight dark:text-textDark">{selectedOrder.product || '-'}</p></div>
-                    <div><span className="text-xs text-mutedLight dark:text-mutedDark block">Shade</span><p className="font-medium text-sm text-textLight dark:text-textDark">{selectedOrder.shade || '-'}</p></div>
-                    <div><span className="text-xs text-mutedLight dark:text-mutedDark block">Units (pcs)</span><p className="font-medium text-sm text-textLight dark:text-textDark">{selectedOrder.units || '-'}</p></div>
-                    <div><span className="text-xs text-mutedLight dark:text-mutedDark block">Technician</span><p className="font-medium text-sm text-textLight dark:text-textDark">{selectedOrder.techIncharge || 'Unassigned'}</p></div>
+                    <div className="grid grid-cols-2 gap-2">
+                       <div><span className="text-[10px] sm:text-xs text-mutedLight dark:text-mutedDark block">Product</span><p className="font-medium text-sm text-textLight dark:text-textDark">{selectedOrder.product || '-'}</p></div>
+                       <div><span className="text-[10px] sm:text-xs text-mutedLight dark:text-mutedDark block">Units (pcs)</span><p className="font-medium text-sm text-textLight dark:text-textDark">{selectedOrder.units || '-'}</p></div>
+                    </div>
+                    <div><span className="text-[10px] sm:text-xs text-mutedLight dark:text-mutedDark block">Shade</span><p className="font-medium text-sm text-textLight dark:text-textDark">{selectedOrder.shade || '-'}</p></div>
+                    <div><span className="text-[10px] sm:text-xs text-mutedLight dark:text-mutedDark block">Technician</span><p className="font-medium text-sm text-textLight dark:text-textDark">{selectedOrder.techIncharge || 'Unassigned'}</p></div>
                   </div>
                 </div>
               </div>
@@ -658,7 +664,7 @@ export default function Records({ workspaceUid, userProfile }) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
                 <div>
                   <h4 className="text-[11px] font-semibold text-mutedLight dark:text-mutedDark uppercase tracking-wider border-b border-borderLight dark:border-borderDark pb-1 mb-3">Financial Details</h4>
-                  <div className="bg-pageLight dark:bg-pageDark rounded-md p-4 space-y-2 border border-borderLight dark:border-borderDark">
+                  <div className="bg-pageLight dark:bg-pageDark rounded-md p-3 sm:p-4 space-y-2 border border-borderLight dark:border-borderDark">
                     <div className="flex justify-between items-center"><span className="text-xs text-mutedLight dark:text-mutedDark">Total Price</span><span className="font-medium text-sm text-textLight dark:text-textDark">{formatCurrency(selectedOrder.totalPrice || 0)}</span></div>
                     <div className="flex justify-between items-center"><span className="text-xs text-mutedLight dark:text-mutedDark">Amount Paid</span><span className="font-medium text-sm text-green-600 dark:text-green-400">{formatCurrency(selectedOrder.payment || 0)}</span></div>
                     <div className="flex justify-between items-center pt-2 border-t border-borderLight dark:border-borderDark"><span className="text-xs font-semibold text-textLight dark:text-textDark">Remaining Balance</span><span className="font-bold text-sm text-red-600 dark:text-red-400">{formatCurrency(selectedOrder.balance || 0)}</span></div>
@@ -669,17 +675,18 @@ export default function Records({ workspaceUid, userProfile }) {
                 <div>
                   <h4 className="text-[11px] font-semibold text-mutedLight dark:text-mutedDark uppercase tracking-wider border-b border-borderLight dark:border-borderDark pb-1 mb-3">Logistics & Notes</h4>
                   <div className="space-y-3">
-                    <div><span className="text-xs text-mutedLight dark:text-mutedDark block">Pick up By</span><p className="font-medium text-sm text-textLight dark:text-textDark">{selectedOrder.pickUpBy || '-'}</p></div>
-                    <div><span className="text-xs text-mutedLight dark:text-mutedDark block">Deliver By</span><p className="font-medium text-sm text-textLight dark:text-textDark">{selectedOrder.deliverBy || '-'}</p></div>
-                    {/* 🚀 THE FIX: Descriptions and Remarks are now separate */}
-                    <div><span className="text-xs text-mutedLight dark:text-mutedDark block">Description</span><p className="font-medium text-sm text-textLight dark:text-textDark">{selectedOrder.descriptions || '-'}</p></div>
-                    <div><span className="text-xs text-mutedLight dark:text-mutedDark block">Remarks</span><p className="font-medium text-sm text-textLight dark:text-textDark">{selectedOrder.remarks || '-'}</p></div>
+                    <div className="grid grid-cols-2 gap-2">
+                       <div><span className="text-[10px] sm:text-xs text-mutedLight dark:text-mutedDark block">Pick up By</span><p className="font-medium text-sm text-textLight dark:text-textDark">{selectedOrder.pickUpBy || '-'}</p></div>
+                       <div><span className="text-[10px] sm:text-xs text-mutedLight dark:text-mutedDark block">Deliver By</span><p className="font-medium text-sm text-textLight dark:text-textDark">{selectedOrder.deliverBy || '-'}</p></div>
+                    </div>
+                    <div><span className="text-[10px] sm:text-xs text-mutedLight dark:text-mutedDark block">Description</span><p className="font-medium text-sm text-textLight dark:text-textDark">{selectedOrder.descriptions || '-'}</p></div>
+                    <div><span className="text-[10px] sm:text-xs text-mutedLight dark:text-mutedDark block">Remarks</span><p className="font-medium text-sm text-textLight dark:text-textDark">{selectedOrder.remarks || '-'}</p></div>
                   </div>
                 </div>
               </div>
 
             </div>
-            <div className="px-6 py-4 border-t border-borderLight dark:border-borderDark bg-pageLight/50 dark:bg-pageDark/50 flex justify-end rounded-b-md">
+            <div className="px-4 sm:px-6 py-3 sm:py-4 border-t border-borderLight dark:border-borderDark bg-pageLight/50 dark:bg-pageDark/50 flex justify-end rounded-b-md">
               <button onClick={() => setIsViewModalOpen(false)} className="px-4 py-2 bg-surfaceLight dark:bg-surfaceDark border border-borderLight dark:border-borderDark text-textLight dark:text-textDark text-sm font-medium rounded hover:bg-pageLight dark:hover:bg-pageDark transition-colors shadow-sm">Close Details</button>
             </div>
           </div>
@@ -702,15 +709,15 @@ export default function Records({ workspaceUid, userProfile }) {
       )}
 
       {isInfoModalOpen && editingOrder && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-          <div className="bg-surfaceLight dark:bg-surfaceDark border border-borderLight dark:border-borderDark rounded-md shadow-xl w-full max-w-2xl flex flex-col max-h-[90vh] animate-in fade-in">
-            <div className="px-5 py-3.5 border-b border-borderLight dark:border-borderDark flex items-center justify-between">
-              <h3 className="text-base font-semibold text-textLight dark:text-textDark">Update Information: {editingOrder.rxNumber}</h3>
-              <button onClick={() => setIsInfoModalOpen(false)} className="text-mutedLight dark:text-mutedDark hover:text-textLight dark:hover:text-textDark">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 sm:p-6">
+          <div className="bg-surfaceLight dark:bg-surfaceDark border border-borderLight dark:border-borderDark rounded-md shadow-xl w-full max-w-2xl flex flex-col max-h-[95vh] sm:max-h-[90vh] animate-in fade-in">
+            <div className="px-4 sm:px-5 py-3 sm:py-3.5 border-b border-borderLight dark:border-borderDark flex items-center justify-between">
+              <h3 className="text-base font-semibold text-textLight dark:text-textDark">Update Information</h3>
+              <button onClick={() => setIsInfoModalOpen(false)} className="text-mutedLight dark:text-mutedDark hover:text-textLight dark:hover:text-textDark p-1">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
               </button>
             </div>
-            <div className="overflow-y-auto p-5 flex-1">
+            <div className="overflow-y-auto p-4 sm:p-5 flex-1 custom-scrollbar">
               <form id="infoForm" onSubmit={handleInfoUpdate} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="sm:col-span-2"><Label title="Patient Name" /><input type="text" name="patientName" value={editingOrder.patientName} onChange={handleInfoChange} className={inputClass} required /></div>
                 <div><Label title="Dentist Name" /><input type="text" name="dentistName" value={editingOrder.dentistName} onChange={handleInfoChange} className={inputClass} required /></div>
@@ -742,12 +749,12 @@ export default function Records({ workspaceUid, userProfile }) {
                 </div>
                 <div><Label title="Units (pcs)" /><input type="number" name="units" value={editingOrder.units} onChange={handleInfoChange} className={inputClass} required /></div>
                 <div><Label title="Due Date" /><input type="date" name="dueDate" value={editingOrder.dueDate} onChange={handleInfoChange} className={inputClass} required /></div>
-                <div><Label title="Total Price" /><input type="number" name="totalPrice" value={editingOrder.totalPrice} onChange={handleInfoChange} className={inputClass} required /></div>
+                <div className="sm:col-span-2"><Label title="Total Price" /><input type="number" name="totalPrice" value={editingOrder.totalPrice} onChange={handleInfoChange} className={inputClass} required /></div>
               </form>
             </div>
-            <div className="px-5 py-3 border-t border-borderLight dark:border-borderDark bg-pageLight/50 dark:bg-pageDark/50 flex justify-end gap-3 rounded-b-md">
+            <div className="px-4 sm:px-5 py-3 border-t border-borderLight dark:border-borderDark bg-pageLight/50 dark:bg-pageDark/50 flex justify-end gap-3 rounded-b-md">
               <button type="button" onClick={() => setIsInfoModalOpen(false)} className="px-3 py-1.5 bg-surfaceLight dark:bg-surfaceDark border border-borderLight dark:border-borderDark text-textLight dark:text-textDark text-sm font-medium rounded hover:bg-pageLight dark:hover:bg-pageDark transition-colors shadow-sm">Cancel</button>
-              <button type="submit" form="infoForm" className="px-3 py-1.5 bg-primary text-white text-sm font-medium rounded hover:bg-primaryHover transition-colors shadow-sm">Save Information</button>
+              <button type="submit" form="infoForm" className="px-3 py-1.5 bg-primary text-white text-sm font-medium rounded hover:bg-primaryHover transition-colors shadow-sm">Save Changes</button>
             </div>
           </div>
         </div>
@@ -755,15 +762,15 @@ export default function Records({ workspaceUid, userProfile }) {
 
       {isPaymentModalOpen && editingOrder && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-          <div className="bg-surfaceLight dark:bg-surfaceDark border border-borderLight dark:border-borderDark rounded-md shadow-xl w-full max-w-md flex flex-col max-h-[90vh] animate-in fade-in">
-            <div className="px-5 py-3.5 border-b border-borderLight dark:border-borderDark flex items-center justify-between">
-              <h3 className="text-base font-semibold text-textLight dark:text-textDark">Update Payment: {editingOrder.rxNumber}</h3>
-              <button onClick={() => setIsPaymentModalOpen(false)} className="text-mutedLight dark:text-mutedDark hover:text-textLight dark:hover:text-textDark">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
+          <div className="bg-surfaceLight dark:bg-surfaceDark border border-borderLight dark:border-borderDark rounded-md shadow-xl w-full max-w-md flex flex-col max-h-[95vh] sm:max-h-[90vh] animate-in fade-in">
+            <div className="px-4 sm:px-5 py-3 sm:py-3.5 border-b border-borderLight dark:border-borderDark flex items-center justify-between">
+              <h3 className="text-base font-semibold text-textLight dark:text-textDark">Update Payment</h3>
+              <button onClick={() => setIsPaymentModalOpen(false)} className="text-mutedLight dark:text-mutedDark hover:text-textLight dark:hover:text-textDark p-1">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
               </button>
             </div>
-            <div className="overflow-y-auto p-5 flex-1">
-              <div className="bg-pageLight dark:bg-pageDark border border-borderLight dark:border-borderDark rounded p-4 mb-5 space-y-2">
+            <div className="overflow-y-auto p-4 sm:p-5 flex-1 custom-scrollbar">
+              <div className="bg-pageLight dark:bg-pageDark border border-borderLight dark:border-borderDark rounded p-3 sm:p-4 mb-4 sm:mb-5 space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-mutedLight dark:text-mutedDark">Total Price</span>
                   <span className="font-semibold text-textLight dark:text-textDark">₱ {parseFloat(editingOrder.totalPrice || 0).toLocaleString()}</span>
@@ -783,8 +790,8 @@ export default function Records({ workspaceUid, userProfile }) {
                 <div>
                   <Label title="New Payment Amount" required={false} />
                   <div className="relative">
-                    <span className="absolute left-3 top-1.5 text-mutedLight dark:text-mutedDark font-medium">₱</span>
-                    <input type="number" min="0" step="any" value={newPaymentAmount} onChange={(e) => setNewPaymentAmount(e.target.value)} className={`${inputClass} pl-7`} placeholder="0.00" />
+                    <span className="absolute left-3 top-2 text-mutedLight dark:text-mutedDark font-medium">₱</span>
+                    <input type="number" min="0" step="any" value={newPaymentAmount} onChange={(e) => setNewPaymentAmount(e.target.value)} className={`${inputClass} pl-8`} placeholder="0.00" />
                   </div>
                 </div>
                 <div>
@@ -795,7 +802,7 @@ export default function Records({ workspaceUid, userProfile }) {
                 </div>
               </form>
             </div>
-            <div className="px-5 py-3 border-t border-borderLight dark:border-borderDark bg-pageLight/50 dark:bg-pageDark/50 flex justify-end gap-3 rounded-b-md">
+            <div className="px-4 sm:px-5 py-3 border-t border-borderLight dark:border-borderDark bg-pageLight/50 dark:bg-pageDark/50 flex justify-end gap-3 rounded-b-md">
               <button type="button" onClick={() => setIsPaymentModalOpen(false)} className="px-3 py-1.5 bg-surfaceLight dark:bg-surfaceDark border border-borderLight dark:border-borderDark text-textLight dark:text-textDark text-sm font-medium rounded hover:bg-pageLight dark:hover:bg-pageDark transition-colors shadow-sm">Cancel</button>
               <button type="submit" form="paymentForm" className="px-3 py-1.5 bg-primary text-white text-sm font-medium rounded hover:bg-primaryHover transition-colors shadow-sm">Update Details</button>
             </div>
